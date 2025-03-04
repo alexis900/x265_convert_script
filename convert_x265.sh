@@ -3,6 +3,14 @@
 # Directorio actual y archivos de log
 source ./env.sh
 
+# Parámetros comunes de ffmpeg
+FFMPEG_PRESET="medium"
+FFMPEG_CRF=22
+FFMPEG_VIDEO_CODEC="libx265"
+FFMPEG_AUDIO_CODEC="copy"
+FFMPEG_SUBTITLE_CODEC="srt"
+FFMPEG_LOG_LEVEL="error"
+
 # Función de log para registrar eventos con timestamp, en archivo y en pantalla
 log() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "$log_file"
@@ -10,12 +18,12 @@ log() {
 
 # Función para detectar el codec de video del archivo
 detect_codec() {
-    ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of csv=p=0 "$1"
+    ffprobe -v $FFMPEG_LOG_LEVEL -select_streams v:0 -show_entries stream=codec_name -of csv=p=0 "$1"
 }
 
 # Función para verificar si hay subtítulos válidos en el archivo
 has_valid_subtitles() {
-    ffprobe -v error -select_streams s -show_entries stream=codec_name -of csv=p=0 "$1" | grep -qE 'srt|subrip|ass|ssa'
+    ffprobe -v $FFMPEG_LOG_LEVEL -select_streams s -show_entries stream=codec_name -of csv=p=0 "$1" | grep -qE 'srt|subrip|ass|ssa'
 }
 
 # Función para verificar si el archivo tiene el atributo 'larger'
@@ -51,7 +59,7 @@ estimate_h265_size() {
         local tmp_output="/tmp/tmp_h265_part_$i.mkv"
         log "Procesando parte $i del archivo $input_file"
 
-        ffmpeg -i "$input_file" -ss $((i * part_duration)) -t "$part_duration" -c:v libx265 -preset "medium" -crf 22 -c:a copy -sn -f matroska "$tmp_output" &>/dev/null
+        ffmpeg -i "$input_file" -ss $((i * part_duration)) -t "$part_duration" -c:v libx265 -preset $FFMPEG_PRESET -crf $FFMPEG_CRF -c:a $FFMPEG_AUDIO_CODEC -sn -f matroska "$tmp_output" &>/dev/null
 
         if [[ $? -ne 0 ]]; then
             log "Error en la conversión de la parte $i del archivo $input_file"
@@ -83,15 +91,22 @@ convert_to_h265_or_change_container() {
     log "Procesando archivo: $input_file"
 
     # Estimar el tamaño del archivo después de la conversión
-    local estimated_size=$(estimate_h265_size "$input_file")
+    local estimated_size=$(estimate_h265_size("$input_file"))
     log "Tamaño estimado para el archivo después de conversión: $estimated_size bytes"
 
+    local original_size=$(stat -c%s "$input_file")
+
+    if (( estimated_size > original_size )) && [[ "$codec" != "h264" ]]; then
+        log "El tamaño estimado en H265 es mayor que el original y el codec no es H264. Convirtiendo a H264."
+        FFMPEG_VIDEO_CODEC="libx264"
+    fi
+
     if has_valid_subtitles "$input_file"; then
-        log "El archivo tiene subtítulos. Iniciando conversión a H265 con subtítulos."
-        ffmpeg -i "$input_file" -map 0 -c:v libx265 -preset "medium" -crf 22 -c:a copy -c:s srt "$output_file" 2>> "$ffmpeg_log_file"
+        log "El archivo tiene subtítulos. Iniciando conversión con subtítulos."
+        ffmpeg -i "$input_file" -map 0 -c:v $FFMPEG_VIDEO_CODEC -preset $FFMPEG_PRESET -crf $FFMPEG_CRF -c:a $FFMPEG_AUDIO_CODEC -c:s $FFMPEG_SUBTITLE_CODEC "$output_file" 2>> "$ffmpeg_log_file"
     else
-        log "El archivo no tiene subtítulos. Iniciando conversión a H265 sin subtítulos."
-        ffmpeg -i "$input_file" -c:v libx265 -preset "medium" -crf 22 -c:a copy -sn "$output_file" 2>> "$ffmpeg_log_file"
+        log "El archivo no tiene subtítulos. Iniciando conversión sin subtítulos."
+        ffmpeg -i "$input_file" -c:v $FFMPEG_VIDEO_CODEC -preset $FFMPEG_PRESET -crf $FFMPEG_CRF -c:a $FFMPEG_AUDIO_CODEC -sn "$output_file" 2>> "$ffmpeg_log_file"
     fi
 
     if [[ $? -eq 0 ]]; then
