@@ -1,9 +1,7 @@
 #!/bin/bash
 
 # Directorio actual y archivos de log
-actual_dir="/mnt/4TB/Multimedia/Peliculas"
-log_file="/home/amartinper/convert_log.txt"
-ffmpeg_log_file="/home/amartinper/ffmpeg_log.txt"
+source ./env.sh
 
 # Función de log para registrar eventos con timestamp, en archivo y en pantalla
 log() {
