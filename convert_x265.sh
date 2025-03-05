@@ -80,6 +80,25 @@ estimate_h265_size() {
     
     # Retorna el tamaño estimado basado en 10 partes
     echo "$total_size"
+    rm -f /tmp/tmp_h265_part_*.mkv
+}
+
+# Función para verificar la calidad del archivo convertido
+verify_quality() {
+    local input_file="$1"
+    local output_file="$2"
+
+    log "Verificando calidad del archivo convertido: $output_file"
+
+    # Compara la duración del archivo original y el convertido
+    local original_duration=$(ffprobe -v $FFMPEG_LOG_LEVEL -show_entries format=duration -of csv=p=0 "$input_file")
+    local converted_duration=$(ffprobe -v $FFMPEG_LOG_LEVEL -show_entries format=duration -of csv=p=0 "$output_file")
+
+    if [[ $(echo "$original_duration == $converted_duration" | bc -l) -eq 1 ]]; then
+        log "La duración del archivo convertido coincide con el original."
+    else
+        log "Advertencia: La duración del archivo convertido no coincide con el original."
+    fi
 }
 
 # Función para convertir el archivo a H265 o cambiar el contenedor
@@ -91,14 +110,18 @@ convert_to_h265_or_change_container() {
     log "Procesando archivo: $input_file"
 
     # Estimar el tamaño del archivo después de la conversión
-    local estimated_size=$(estimate_h265_size("$input_file"))
+    log "Estimando tamaño para: $input_file"
+    local estimated_size=$(estimate_h265_size "$input_file")
     log "Tamaño estimado para el archivo después de conversión: $estimated_size bytes"
 
     local original_size=$(stat -c%s "$input_file")
+    log "Tamaño original del archivo: $original_size bytes"
 
     if (( estimated_size > original_size )) && [[ "$codec" != "h264" ]]; then
         log "El tamaño estimado en H265 es mayor que el original y el codec no es H264. Convirtiendo a H264."
         FFMPEG_VIDEO_CODEC="libx264"
+    else
+        FFMPEG_VIDEO_CODEC="libx265"
     fi
 
     if has_valid_subtitles "$input_file"; then
@@ -111,35 +134,53 @@ convert_to_h265_or_change_container() {
 
     if [[ $? -eq 0 ]]; then
         log "Conversión completada exitosamente: $output_file"
+        if verify_quality "$input_file" "$output_file"; then
+            log "Eliminando archivo original: $input_file"
+            rm "$input_file"
+        else
+            log "La calidad del archivo convertido no es aceptable. Conservando el archivo original."
+        fi
     else
         log "Error durante la conversión: $output_file"
     fi
 }
 
+process_file() {
+    local file="$1"
+    local codec=$(detect_codec "$file")
+    if [[ -z "$codec" ]]; then
+        log "Error: No se pudo detectar el codec del archivo $file"
+        return 1
+    fi
+    local h265_path="$(dirname "$file")/$(basename "$file" | cut -d. -f1).x265.mkv"
+    convert_to_h265_or_change_container "$file" "$h265_path" "$codec"
+}
+
 while true; do
     log "Buscando archivos en $actual_dir..."
 
-    file=$(find "$actual_dir" -type f \
+    files=$(find "$actual_dir" -type f \
         \( -name "*.mkv" -o -name "*.avi" -o -name "*.mp4" -o -name "*.mov" -o -name "*.wmv" -o -name "*.flv" -o -name "*.m4v" -o -name "*.webm" -o -name "*.3gp" \) \
         -not -name "*.h265.mkv" -not -name "*.x265.mkv" | while read -r f; do
             codec=$(detect_codec "$f")
             xattr_output=$(check_xattr_larger "$f")
             if [[ "$codec" == "hevc" ]] && [[ "${f##*.}" != "mkv" ]]; then
-                echo "$f"; break
+                echo "$f"
             elif [[ "$codec" == "h264" ]] && [[ "${f##*.}" != "mkv" ]]; then
-                echo "$f"; break
+                echo "$f"
             elif [[ "$codec" != "hevc" && "$xattr_output" != "true" ]]; then
-                echo "$f"; break
+                echo "$f"
             fi
         done)
 
-    if [[ -z "$file" ]]; then
+    if [[ -z "$files" ]]; then
         log "No se encontraron archivos para convertir o cambiar contenedor. Saliendo..."
         break
     fi
 
-    h265_path="$(dirname "$file")/$(basename "$file" | cut -d. -f1).x265.mkv"
-    convert_to_h265_or_change_container "$file" "$h265_path" "$(detect_codec "$file")"
+    while IFS= read -r file; do
+        process_file "$file"
+    done <<< "$files"
 
     log "Esperando 10 segundos antes de la siguiente iteración..."
     sleep 10
