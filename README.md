@@ -1,6 +1,6 @@
 # x265 Convert Script
 
-This script converts video files to H265 (HEVC) format or changes their container if they are already in H265 but not in MKV format. If the estimated size of the file converted to H265 is larger than the original and the original codec is not H264, the file will be converted to H264.
+This script converts video files to H265 (HEVC) format or changes their container if they are already in H265 but not in MKV format. If the estimated size of the file converted to H265 is larger than the original and the original codec is not H264, the file will be converted to H264 with the extension `.x264.mkv`.
 
 ## Requirements
 
@@ -36,7 +36,7 @@ This script converts video files to H265 (HEVC) format or changes their containe
 - `check_xattr_larger()`: Checks if the file has the 'larger' attribute.
 - `mark_xattr_larger()`: Marks the file with the 'larger' attribute.
 - `estimate_h265_size()`: Estimates the size of the file after conversion to H265.
-- `convert_to_h265_or_change_container()`: Converts the file to H265 or changes the container.
+- `convert_to_h265_or_change_container()`: Converts the file to H265 or changes the container. If the estimated size of the file converted to H265 is larger than the original and the original codec is not H264, the file will be converted to H264 with the extension `.x264.mkv`.
 
 ## Additional Script
 

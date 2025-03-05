@@ -120,6 +120,7 @@ convert_to_h265_or_change_container() {
     if (( estimated_size > original_size )) && [[ "$codec" != "h264" ]]; then
         log "El tamaño estimado en H265 es mayor que el original y el codec no es H264. Convirtiendo a H264."
         FFMPEG_VIDEO_CODEC="libx264"
+        output_file="$(dirname "$input_file")/$(basename "$input_file" | cut -d. -f1).x264.mkv"
     else
         FFMPEG_VIDEO_CODEC="libx265"
     fi
