@@ -11,9 +11,32 @@ FFMPEG_AUDIO_CODEC="copy"
 FFMPEG_SUBTITLE_CODEC="srt"
 FFMPEG_LOG_LEVEL="error"
 
+# Directorio de respaldo
+BACKUP_DIR="$actual_dir/backup"
+
 # Función de log para registrar eventos con timestamp, en archivo y en pantalla
 log() {
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "$log_file"
+    local level="$1"
+    local message="$2"
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - [$level] $message" | tee -a "$log_file"
+}
+
+# Función para crear un respaldo del archivo original
+backup_file() {
+    local file="$1"
+    mkdir -p "$BACKUP_DIR"
+    cp "$file" "$BACKUP_DIR"
+    log "INFO" "Respaldo creado para: $file"
+}
+
+# Función para eliminar el respaldo del archivo original
+delete_backup() {
+    local file="$1"
+    local backup_file="$BACKUP_DIR/$(basename "$file")"
+    if [[ -f "$backup_file" ]]; then
+        rm "$backup_file"
+        log "INFO" "Respaldo eliminado para: $file"
+    fi
 }
 
 # Función para detectar el codec de video del archivo
@@ -32,7 +55,7 @@ check_xattr_larger() {
     if command -v xattr &>/dev/null; then
         xattr -p user.larger "$file" 2>/dev/null
     else
-        log "xattr no está disponible en este sistema"
+        log "ERROR" "xattr no está disponible en este sistema"
         return 1
     fi
 }
@@ -43,7 +66,7 @@ mark_xattr_larger() {
     if command -v xattr &>/dev/null; then
         xattr -w user.larger true "$file"
     else
-        log "xattr no está disponible en este sistema"
+        log "ERROR" "xattr no está disponible en este sistema"
     fi
 }
 
@@ -52,35 +75,38 @@ estimate_h265_size() {
     local input_file="$1"
     local part_duration=10  # Duración en segundos para las partes
     local total_size=0
-
-    log "Estimando tamaño para: $input_file"
+    rm -f /tmp/tmp_h265_part_*.mkv
+    log "INFO" "Estimando tamaño para: $input_file"
     # Convierte el archivo en 10 partes de 10 segundos para estimar el tamaño
     for i in $(seq 0 9); do
         local tmp_output="/tmp/tmp_h265_part_$i.mkv"
-        log "Procesando parte $i del archivo $input_file"
+        log "INFO" "Procesando parte $i del archivo $input_file"
 
-        ffmpeg -i "$input_file" -ss $((i * part_duration)) -t "$part_duration" -c:v libx265 -preset $FFMPEG_PRESET -crf $FFMPEG_CRF -c:a $FFMPEG_AUDIO_CODEC -sn -f matroska "$tmp_output" &>/dev/null
+        ffmpeg -i "$input_file" -ss $((i * part_duration)) -t "$part_duration" -c:v libx265 -preset $FFMPEG_PRESET -crf $FFMPEG_CRF -c:a $FFMPEG_AUDIO_CODEC -sn -f matroska "$tmp_output" &>> "$ffmpeg_log_file" &
 
         if [[ $? -ne 0 ]]; then
-            log "Error en la conversión de la parte $i del archivo $input_file"
+            log "ERROR" "Error en la conversión de la parte $i del archivo $input_file"
+            cleanup_temp_files
             return 1
         fi
 
         # Sumar el tamaño de cada parte
-        local part_size=$(stat -c%s "$tmp_output")
+        local part_size=$(wc -c < "$tmp_output")
         total_size=$((total_size + part_size))
 
-        log "Parte $i procesada, tamaño: $part_size bytes"
+        log "INFO" "Parte $i procesada, tamaño: $part_size bytes"
 
-        # Eliminar el archivo temporal de la parte convertida
-        rm "$tmp_output"
     done
 
-    log "Tamaño total estimado para $input_file: $total_size bytes"
+    wait
+
+    # Eliminar todos los archivos temporales de una vez
+    rm /tmp/tmp_h265_part_*.mkv
+
+    log "INFO" "Tamaño total estimado para $input_file: $total_size bytes"
     
-    # Retorna el tamaño estimado basado en 10 partes
+    return "$total_size"
     echo "$total_size"
-    rm -f /tmp/tmp_h265_part_*.mkv
 }
 
 # Función para verificar la calidad del archivo convertido
@@ -88,16 +114,16 @@ verify_quality() {
     local input_file="$1"
     local output_file="$2"
 
-    log "Verificando calidad del archivo convertido: $output_file"
+    log "INFO" "Verificando calidad del archivo convertido: $output_file"
 
     # Compara la duración del archivo original y el convertido
     local original_duration=$(ffprobe -v $FFMPEG_LOG_LEVEL -show_entries format=duration -of csv=p=0 "$input_file")
     local converted_duration=$(ffprobe -v $FFMPEG_LOG_LEVEL -show_entries format=duration -of csv=p=0 "$output_file")
 
     if [[ $(echo "$original_duration == $converted_duration" | bc -l) -eq 1 ]]; then
-        log "La duración del archivo convertido coincide con el original."
+        log "INFO" "La duración del archivo convertido coincide con el original."
     else
-        log "Advertencia: La duración del archivo convertido no coincide con el original."
+        log "WARNING" "La duración del archivo convertido no coincide con el original."
     fi
 }
 
@@ -107,18 +133,26 @@ convert_to_h265_or_change_container() {
     local output_file="$2"
     local codec="$3"
 
-    log "Procesando archivo: $input_file"
+    log "INFO" "Procesando archivo: $input_file"
+
+    # Crear un respaldo del archivo original
+    backup_file "$input_file"
 
     # Estimar el tamaño del archivo después de la conversión
-    log "Estimando tamaño para: $input_file"
+    estimate_h265_size "$input_file"
+    local estimated_size=$?
     local estimated_size=$(estimate_h265_size "$input_file")
-    log "Tamaño estimado para el archivo después de conversión: $estimated_size bytes"
+    if [[ $? -ne 0 ]]; then
+        log "ERROR" "Error en estimate_h265_size al estimar el tamaño del archivo $input_file"
+        return 1
+    fi
+    log "INFO" "Tamaño estimado para el archivo después de conversión: $estimated_size bytes"
 
     local original_size=$(stat -c%s "$input_file")
-    log "Tamaño original del archivo: $original_size bytes"
+    log "INFO" "Tamaño original del archivo: $original_size bytes"
 
     if (( estimated_size > original_size )) && [[ "$codec" != "h264" ]]; then
-        log "El tamaño estimado en H265 es mayor que el original y el codec no es H264. Convirtiendo a H264."
+        log "INFO" "El tamaño estimado en H265 es mayor que el original y el codec no es H264. Convirtiendo a H264."
         FFMPEG_VIDEO_CODEC="libx264"
         output_file="$(dirname "$input_file")/$(basename "$input_file" | cut -d. -f1).x264.mkv"
     else
@@ -126,31 +160,48 @@ convert_to_h265_or_change_container() {
     fi
 
     if has_valid_subtitles "$input_file"; then
-        log "El archivo tiene subtítulos. Iniciando conversión con subtítulos."
+        log "INFO" "El archivo tiene subtítulos. Iniciando conversión con subtítulos."
         ffmpeg -i "$input_file" -map 0 -c:v $FFMPEG_VIDEO_CODEC -preset $FFMPEG_PRESET -crf $FFMPEG_CRF -c:a $FFMPEG_AUDIO_CODEC -c:s $FFMPEG_SUBTITLE_CODEC "$output_file" 2>> "$ffmpeg_log_file"
     else
-        log "El archivo no tiene subtítulos. Iniciando conversión sin subtítulos."
+        log "INFO" "El archivo no tiene subtítulos. Iniciando conversión sin subtítulos."
         ffmpeg -i "$input_file" -c:v $FFMPEG_VIDEO_CODEC -preset $FFMPEG_PRESET -crf $FFMPEG_CRF -c:a $FFMPEG_AUDIO_CODEC -sn "$output_file" 2>> "$ffmpeg_log_file"
     fi
 
     if [[ $? -eq 0 ]]; then
-        log "Conversión completada exitosamente: $output_file"
+        log "INFO" "Conversión completada exitosamente: $output_file"
         if verify_quality "$input_file" "$output_file"; then
-            log "Eliminando archivo original: $input_file"
+            log "INFO" "Eliminando archivo original: $input_file"
             rm "$input_file"
+            delete_backup "$input_file"
         else
-            log "La calidad del archivo convertido no es aceptable. Conservando el archivo original."
+            log "WARNING" "La calidad del archivo convertido no es aceptable. Conservando el archivo original."
         fi
     else
-        log "Error durante la conversión: $output_file"
+        log "ERROR" "Error durante la conversión: $output_file"
     fi
 }
+
+# Función para limpiar archivos temporales
+cleanup_temp_files() {
+    rm -f /tmp/tmp_h265_part_*.mkv
+    log "INFO" "Archivos temporales eliminados"
+}
+
+# Función para manejar señales
+handle_signal() {
+    log "INFO" "Señal recibida, limpiando y saliendo..."
+    cleanup_temp_files
+    exit 1
+}
+
+# Registrar manejadores de señales
+trap handle_signal SIGINT SIGTERM
 
 process_file() {
     local file="$1"
     local codec=$(detect_codec "$file")
     if [[ -z "$codec" ]]; then
-        log "Error: No se pudo detectar el codec del archivo $file"
+        log "ERROR" "Error: No se pudo detectar el codec del archivo $file"
         return 1
     fi
     local h265_path="$(dirname "$file")/$(basename "$file" | cut -d. -f1).x265.mkv"
@@ -158,7 +209,7 @@ process_file() {
 }
 
 while true; do
-    log "Buscando archivos en $actual_dir..."
+    log "INFO" "Buscando archivos en $actual_dir..."
 
     files=$(find "$actual_dir" -type f \
         \( -name "*.mkv" -o -name "*.avi" -o -name "*.mp4" -o -name "*.mov" -o -name "*.wmv" -o -name "*.flv" -o -name "*.m4v" -o -name "*.webm" -o -name "*.3gp" \) \
@@ -175,7 +226,7 @@ while true; do
         done)
 
     if [[ -z "$files" ]]; then
-        log "No se encontraron archivos para convertir o cambiar contenedor. Saliendo..."
+        log "INFO" "No se encontraron archivos para convertir o cambiar contenedor. Saliendo..."
         break
     fi
 
@@ -183,6 +234,8 @@ while true; do
         process_file "$file"
     done <<< "$files"
 
-    log "Esperando 10 segundos antes de la siguiente iteración..."
+    log "INFO" "Esperando 10 segundos antes de la siguiente iteración..."
     sleep 10
 done
+
+exit 0
