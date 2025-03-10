@@ -77,12 +77,16 @@ estimate_h265_size() {
     local total_size=0
     rm -f /tmp/tmp_h265_part_*.mkv
     log "INFO" "Estimando tamaño para: $input_file"
+    
+    # Asegurarse de que el directorio /tmp existe
+    mkdir -p /tmp
+
     # Convierte el archivo en 10 partes de 10 segundos para estimar el tamaño
     for i in $(seq 0 9); do
         local tmp_output="/tmp/tmp_h265_part_$i.mkv"
         log "INFO" "Procesando parte $i del archivo $input_file"
 
-        ffmpeg -i "$input_file" -ss $((i * part_duration)) -t "$part_duration" -c:v libx265 -preset $FFMPEG_PRESET -crf $FFMPEG_CRF -c:a $FFMPEG_AUDIO_CODEC -sn -f matroska "$tmp_output" &>> "$ffmpeg_log_file" &
+        ffmpeg -i "$input_file" -ss $((i * part_duration)) -t "$part_duration" -c:v libx265 -preset $FFMPEG_PRESET -crf $FFMPEG_CRF -c:a $FFMPEG_AUDIO_CODEC -sn -f matroska "$tmp_output" &>> "$ffmpeg_log_file"
 
         if [[ $? -ne 0 ]]; then
             log "ERROR" "Error en la conversión de la parte $i del archivo $input_file"
@@ -91,21 +95,22 @@ estimate_h265_size() {
         fi
 
         # Sumar el tamaño de cada parte
-        local part_size=$(wc -c < "$tmp_output")
-        total_size=$((total_size + part_size))
-
-        log "INFO" "Parte $i procesada, tamaño: $part_size bytes"
-
+        if [[ -f "$tmp_output" ]]; then
+            local part_size=$(wc -c < "$tmp_output")
+            total_size=$((total_size + part_size))
+            log "INFO" "Parte $i procesada, tamaño: $part_size bytes"
+        else
+            log "ERROR" "No se pudo crear el archivo temporal $tmp_output"
+            cleanup_temp_files
+            return 1
+        fi
     done
-
-    wait
 
     # Eliminar todos los archivos temporales de una vez
     rm /tmp/tmp_h265_part_*.mkv
 
     log "INFO" "Tamaño total estimado para $input_file: $total_size bytes"
     
-    return "$total_size"
     echo "$total_size"
 }
 
@@ -178,6 +183,8 @@ convert_to_h265_or_change_container() {
         fi
     else
         log "ERROR" "Error durante la conversión: $output_file"
+        log "INFO" "Restaurando el archivo original desde el respaldo: $input_file"
+        cp "$BACKUP_DIR/$(basename "$input_file")" "$input_file"
     fi
 }
 
