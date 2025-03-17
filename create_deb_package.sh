@@ -2,7 +2,7 @@
 
 # This script automates the generation of a .deb package for the x265 convert script.
 
-SHARE_PATH="/usr/local/share/x265_convert_script"
+SHARE_PATH="$(pwd)"
 source $SHARE_PATH/version
 
 # Create the necessary directory structure
@@ -26,8 +26,23 @@ EOF
 cat <<EOF > debian/DEBIAN/postinst
 #!/bin/bash
 
-chmod +x /usr/local/bin/convert_x265
-chmod +x /usr/local/bin/check_x265
+set -e
+
+if [[ -f /usr/local/bin/convert_x265 ]]; then
+    chmod +x /usr/local/bin/convert_x265
+else
+    echo "Error: /usr/local/bin/convert_x265 not found" >&2
+    exit 1
+fi
+
+if [[ -f /usr/local/bin/check_x265 ]]; then
+    chmod +x /usr/local/bin/check_x265
+else
+    echo "Error: /usr/local/bin/check_x265 not found" >&2
+    exit 1
+fi
+
+exit 0
 EOF
 
 chmod +x debian/DEBIAN/postinst
@@ -35,9 +50,10 @@ chmod +x debian/DEBIAN/postinst
 # Copy the scripts to the appropriate directories
 cp convert_x265 debian/usr/local/bin/convert_x265
 cp check_x265 debian/usr/local/bin/check_x265
-cp env.sh debian/usr/local/share/x265_convert_script/
-cp logging.sh debian/usr/local/share/x265_convert_script/
-cp file_utils.sh debian/usr/local/share/x265_convert_script/
+cp env.sh debian/usr/local/share/x265_convert_script/env.sh
+cp logging.sh debian/usr/local/share/x265_convert_script/logging.sh
+cp file_utils.sh debian/usr/local/share/x265_convert_script/file_utils.sh
+cp version debian/usr/local/share/x265_convert_script/version
 
 # Build the package
 dpkg-deb --build debian

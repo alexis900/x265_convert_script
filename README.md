@@ -24,11 +24,11 @@ This script converts video files to H265 (HEVC) format or changes their containe
     ffmpeg_log_file="/path/to/log/file/ffmpeg.log"
     remaining_log="/path/to/log/file/remaining.log"
     ```
-5. Run the conversion script:
+4. Run the conversion script:
     ```bash
     ./convert_x265.sh
     ```
-6. Run the check script to find pending files:
+5. Run the check script to find pending files:
     ```bash
     ./check_x265.sh
     ```

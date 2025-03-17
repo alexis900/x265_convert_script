@@ -9,6 +9,14 @@ source $SHARE_PATH/env.sh
 source $SHARE_PATH/logging.sh
 source $SHARE_PATH/file_utils.sh
 
+# Check for --version argument
+if [[ "$1" == "--version" ]]; then
+    source $SHARE_PATH/version
+    echo "$PACKAGE_NAME version $VERSION"
+    exit 0
+fi
+
+
 # Verify if the required files exist
 required_files=("env.sh" "logging.sh" "file_utils.sh")
 for file in "${required_files[@]}"; do
