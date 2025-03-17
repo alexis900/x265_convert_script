@@ -1,0 +1,8 @@
+Package: x265-convert-script
+Version: 0.0.0.4-alpha
+Section: utils
+Priority: optional
+Architecture: all
+Depends: ffmpeg, xattr
+Maintainer: Alejandro Martin Perez <alejandro.martinpz98@outlook.com>
+Description: A script to convert video files to H265 (HEVC) format or change their container.

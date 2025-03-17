@@ -8,9 +8,9 @@ source $SHARE_PATH/logging.sh
 source $SHARE_PATH/file_utils.sh
 
 # Verificar si los archivos necesarios existen
-required_files=("env.sh" "logging.sh" "file_utils.sh")
+required_files=("$SHARE_PATH/env.sh" "$SHARE_PATH/logging.sh" "$SHARE_PATH/file_utils.sh")
 for file in "${required_files[@]}"; do
-    if [[ ! -f "$SHARE_PATH/$file" ]]; then
+    if [[ ! -f "$file" ]]; then
         echo "Error: El archivo requerido $file no existe. Saliendo..."
         exit 1
     fi

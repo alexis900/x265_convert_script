@@ -1,0 +1,4 @@
+#!/bin/bash
+
+chmod +x /usr/local/bin/convert_x265.sh
+chmod +x /usr/local/bin/check_x265.sh

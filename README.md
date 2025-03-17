@@ -16,7 +16,7 @@ This script converts video files to H265 (HEVC) format or changes their containe
     chmod +x convert_x265.sh
     chmod +x check_x265.sh
     ```
-3. Create an `env.sh` file in the same directory as the script with the following variables:
+3. Create an `env.sh` file in the shared path `/usr/local/share/x265_convert_script` with the following variables:
     ```bash
     # env.sh
     actual_dir="/path/to/video/directory"

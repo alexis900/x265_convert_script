@@ -1,6 +1,18 @@
 #!/bin/bash
 
-source /usr/local/share/x265_convert_script/env.sh
+SHARE_PATH="/usr/local/share/x265_convert_script"
+
+# Directorio actual
+source $SHARE_PATH/env.sh
+
+# Verificar si los archivos necesarios existen
+required_files=("$SHARE_PATH/env.sh")
+for file in "${required_files[@]}"; do
+    if [[ ! -f "$file" ]]; then
+        echo "Error: El archivo requerido $file no existe. Saliendo..."
+        exit 1
+    fi
+done
 
 # Función para encontrar archivos pendientes
 find_pending_files() {
