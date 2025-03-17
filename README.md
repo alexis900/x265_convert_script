@@ -16,7 +16,7 @@ This script converts video files to H265 (HEVC) format or changes their containe
     chmod +x convert_x265.sh
     chmod +x check_x265.sh
     ```
-3. Create an `env.sh` file in the same directory as the script with the following variables:
+3. Create an `env.sh` file in the shared path `/usr/local/share/x265_convert_script` with the following variables:
     ```bash
     # env.sh
     actual_dir="/path/to/video/directory"
@@ -33,6 +33,24 @@ This script converts video files to H265 (HEVC) format or changes their containe
     ./check_x265.sh
     ```
 
+## Environment Variables
+
+The `env.sh` file contains the following variables:
+
+- `actual_dir`: The directory where the video files are located.
+- `log_file`: The path to the main log file.
+- `ffmpeg_log_file`: The path to the log file for `ffmpeg` output.
+- `remaining_log`: The path to the log file for remaining files.
+
+Example `env.sh` file:
+```bash
+# env.sh
+actual_dir="/path/to/video/directory"
+log_file="/path/to/log/file/convert.log"
+ffmpeg_log_file="/path/to/log/file/ffmpeg.log"
+remaining_log="/path/to/log/file/remaining.log"
+```
+
 ## Main Functions
 
 - `log()`: Logs events with a timestamp to a log file and the screen.
@@ -48,6 +66,11 @@ This script converts video files to H265 (HEVC) format or changes their containe
 - `check_x265.sh`: Checks for pending files that need to be processed. It logs the files that have not been processed yet and skips those that have the 'larger' attribute set.
 - `logging.sh`: Contains the `log` function used for logging events.
 - `file_utils.sh`: Contains the `find_pending_files` function used to find files that need to be processed, the `detect_codec` function to detect the video codec of the file, and the xattr-related functions (`check_xattr_larger` and `mark_xattr_larger`).
+
+## Package Generation Scripts
+
+- `create_deb_package.sh`: Script to automate the generation of a `.deb` package.
+- `create_rpm_package.sh`: Script to automate the generation of a `.rpm` package.
 
 ## Notes
 

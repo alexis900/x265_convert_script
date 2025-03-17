@@ -1,0 +1,42 @@
+#!/bin/bash
+
+# This script checks for pending video files that need to be processed and logs them.
+
+SHARE_PATH="/usr/local/share/x265_convert_script"
+
+# Load environment variables and utility functions
+source $SHARE_PATH/env.sh
+source $SHARE_PATH/logging.sh
+source $SHARE_PATH/file_utils.sh
+
+# Verify if the required files exist
+required_files=("env.sh" "logging.sh" "file_utils.sh")
+for file in "${required_files[@]}"; do
+    if [[ ! -f "$SHARE_PATH/$file" ]]; then
+        echo "Error: Required file $file does not exist. Exiting..."
+        exit 1
+    fi
+done
+
+log "INFO" "Checking directory: $actual_dir" "$remaining_log"
+if [ ! -d "$actual_dir" ]; then
+    log "ERROR" "Error! Directory $actual_dir does not exist." "$remaining_log"
+    exit 1
+fi
+
+log "INFO" "Searching for pending files..." "$remaining_log"
+
+files_pending=$(find_pending_files)
+
+# Check if files have been processed and if they have the 'larger' attribute
+while IFS= read -r file; do
+    xattr_output=$(check_xattr_larger "$file")
+
+    if [[ -n "$xattr_output" ]]; then
+        continue
+    else
+        log "INFO" "Pending file to process: $file" "$remaining_log"
+    fi
+done <<< "$files_pending"
+
+log "INFO" "Finished searching for pending files." "$remaining_log"
