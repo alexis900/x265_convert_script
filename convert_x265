@@ -9,6 +9,21 @@ source $SHARE_PATH/env.sh
 source $SHARE_PATH/logging.sh
 source $SHARE_PATH/file_utils.sh
 
+# Function to display help
+display_help() {
+    echo "Usage: $0 [options]"
+    echo
+    echo "Options:"
+    echo "  --help       Display this help message and exit"
+    echo "  --version    Display the version information and exit"
+    exit 0
+}
+
+# Check for --help argument
+if [[ "$1" == "--help" ]]; then
+    display_help
+fi
+
 # Check for --version argument
 if [[ "$1" == "--version" ]]; then
     source $SHARE_PATH/version
