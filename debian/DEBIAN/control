@@ -1,5 +1,5 @@
 Package: x265-convert-script
-Version: 0.0.0.4-alpha
+Version: 0.0.0.6-alpha
 Section: utils
 Priority: optional
 Architecture: all

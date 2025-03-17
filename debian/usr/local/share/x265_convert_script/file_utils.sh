@@ -6,9 +6,9 @@ SHARE_PATH="/usr/local/share/x265_convert_script"
 source $SHARE_PATH/env.sh
 
 # Verificar si los archivos necesarios existen
-required_files=("$SHARE_PATH/env.sh")
+required_files=("env.sh")
 for file in "${required_files[@]}"; do
-    if [[ ! -f "$file" ]]; then
+    if [[ ! -f "$SHARE_PATH/$file" ]]; then
         echo "Error: El archivo requerido $file no existe. Saliendo..."
         exit 1
     fi
