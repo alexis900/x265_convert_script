@@ -2,7 +2,8 @@
 
 # This script converts video files to H265 (HEVC) format or changes their container.
 
-SHARE_PATH="/usr/local/share/x265_convert_script"
+#SHARE_PATH="/usr/local/share/x265_convert_script"
+SHARE_PATH="."
 
 # Load environment variables and utility functions
 source $SHARE_PATH/env.sh
@@ -16,20 +17,38 @@ display_help() {
     echo "Options:"
     echo "  --help       Display this help message and exit"
     echo "  --version    Display the version information and exit"
+    echo "  --dir PATH   Specify the directory to process (overrides actual_dir)"
     exit 0
 }
 
-# Check for --help argument
-if [[ "$1" == "--help" ]]; then
-    display_help
-fi
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --help|-h)
+            display_help
+            ;;
+        --version|-v)
+            source $SHARE_PATH/version
+            echo "$PACKAGE_NAME version $VERSION"
+            exit 0
+            ;;
+        --dir|-d)
+            if [[ -n "$2" ]]; then
+                actual_dir="$2"
+                shift
+            else
+                echo "Error: --dir requires a directory path as an argument."
+                exit 1
+            fi
+            ;;
+        *)
+            echo "Unknown option: $1"
+            display_help
+            ;;
+    esac
+    shift
+done
 
-# Check for --version argument
-if [[ "$1" == "--version" ]]; then
-    source $SHARE_PATH/version
-    echo "$PACKAGE_NAME version $VERSION"
-    exit 0
-fi
 
 
 # Verify if the required files exist
