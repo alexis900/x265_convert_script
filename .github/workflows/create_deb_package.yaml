@@ -1,0 +1,37 @@
+name: Build DEB Package
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-deb-package:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Checkout the repository
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    # Set up dependencies
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y dpkg-dev
+
+    # Run the script to create the DEB package
+    - name: Create DEB package
+      run: |
+        chmod +x create_deb_package.sh
+        ./create_deb_package.sh
+
+    # Save the generated DEB package as an artifact
+    - name: Upload DEB package
+      uses: actions/upload-artifact@v3
+      with:
+        name: deb-package
+        path: "*.deb"
