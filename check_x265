@@ -9,6 +9,9 @@ source $SHARE_PATH/env.sh
 source $SHARE_PATH/logging.sh
 source $SHARE_PATH/file_utils.sh
 
+# Default log level
+LOG_LEVEL="${LOG_LEVEL:-DEBUG}"
+
 # Verify if the required files exist
 required_files=("env.sh" "logging.sh" "file_utils.sh")
 for file in "${required_files[@]}"; do
@@ -33,6 +36,7 @@ while IFS= read -r file; do
     xattr_output=$(check_xattr_larger "$file")
 
     if [[ -n "$xattr_output" ]]; then
+        log "DEBUG" "File $file already processed or marked as larger." "$remaining_log"
         continue
     else
         log "INFO" "Pending file to process: $file" "$remaining_log"

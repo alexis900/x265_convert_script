@@ -2,13 +2,42 @@
 
 # This script converts video files to H265 (HEVC) format or changes their container.
 
-#SHARE_PATH="/usr/local/share/x265_convert_script"
+# SHARE_PATH="/usr/local/share/x265_convert_script"
 SHARE_PATH="."
 
 # Load environment variables and utility functions
 source $SHARE_PATH/env.sh
 source $SHARE_PATH/logging.sh
 source $SHARE_PATH/file_utils.sh
+
+# Default log level
+LOG_LEVEL="DEBUG"
+
+# Function to set log level
+set_log_level() {
+    case "$1" in
+        DEBUG|INFO|WARNING|ERROR)
+            LOG_LEVEL="$1"
+            ;;
+        *)
+            echo "Invalid log level: $1. Valid levels are DEBUG, INFO, WARNING, ERROR."
+            exit 1
+            ;;
+    esac
+}
+
+process_file() {
+    local file="$1"
+    local codec=$(detect_codec "$file")
+    if [[ -z "$codec" ]]; then
+        log "ERROR" "Error: Could not detect codec of file $file" "$log_file"
+        return 1
+    fi
+    local h265_path="$(dirname "$file")/$(basename "$file" | cut -d. -f1).x265.mkv"
+    log "DEBUG" "Detected codec for $file: $codec" "$log_file"
+    convert_to_h265_or_change_container "$file" "$h265_path" "$codec"
+}
+
 
 # Function to display help
 display_help() {
@@ -18,38 +47,10 @@ display_help() {
     echo "  --help       Display this help message and exit"
     echo "  --version    Display the version information and exit"
     echo "  --dir PATH   Specify the directory to process (overrides actual_dir)"
+    echo "  --file PATH  Specify the file to process"
+    echo "  --log-level LEVEL  Set the log level (DEBUG, INFO, WARNING, ERROR)"
     exit 0
 }
-
-# Parse arguments
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --help|-h)
-            display_help
-            ;;
-        --version|-v)
-            source $SHARE_PATH/version
-            echo "$PACKAGE_NAME version $VERSION"
-            exit 0
-            ;;
-        --dir|-d)
-            if [[ -n "$2" ]]; then
-                actual_dir="$2"
-                shift
-            else
-                echo "Error: --dir requires a directory path as an argument."
-                exit 1
-            fi
-            ;;
-        *)
-            echo "Unknown option: $1"
-            display_help
-            ;;
-    esac
-    shift
-done
-
-
 
 # Verify if the required files exist
 required_files=("env.sh" "logging.sh" "file_utils.sh")
@@ -108,7 +109,7 @@ estimate_h265_size() {
     # Convert the file in 10 parts of 10 seconds to estimate the size
     for i in $(seq 0 9); do
         local tmp_output="/tmp/tmp_h265_part_$i.mkv"
-        log "INFO" "Processing part $i of file $input_file" "$log_file"
+        log "DEBUG" "Processing part $i of file $input_file" "$log_file"
 
         ffmpeg -i "$input_file" -ss $((i * part_duration)) -t "$part_duration" -c:v libx265 -preset $FFMPEG_PRESET -crf $FFMPEG_CRF -c:a $FFMPEG_AUDIO_CODEC -sn -f matroska "$tmp_output" &>> "$ffmpeg_log_file"
 
@@ -122,7 +123,7 @@ estimate_h265_size() {
         if [[ -f "$tmp_output" ]]; then
             local part_size=$(wc -c < "$tmp_output")
             total_size=$((total_size + part_size))
-            log "INFO" "Part $i processed, size: $part_size bytes" "$log_file"
+            log "DEBUG" "Part $i processed, size: $part_size bytes" "$log_file"
         else
             log "ERROR" "Could not create temporary file $tmp_output" "$log_file"
             cleanup_temp_files
@@ -168,8 +169,7 @@ convert_to_h265_or_change_container() {
     backup_file "$input_file"
 
     # Estimate the size of the file after conversion
-    estimate_h265_size "$input_file"
-    local estimated_size=$?
+    log "DEBUG" "Estimating size for $input_file" "$log_file"
     local estimated_size=$(estimate_h265_size "$input_file")
     if [[ $? -ne 0 ]]; then
         log "ERROR" "Error in estimate_h265_size while estimating the size of file $input_file" "$log_file"
@@ -228,17 +228,7 @@ handle_signal() {
 # Register signal handlers
 trap handle_signal SIGINT SIGTERM
 
-process_file() {
-    local file="$1"
-    local codec=$(detect_codec "$file")
-    if [[ -z "$codec" ]]; then
-        log "ERROR" "Error: Could not detect codec of file $file" "$log_file"
-        return 1
-    fi
-    local h265_path="$(dirname "$file")/$(basename "$file" | cut -d. -f1).x265.mkv"
-    convert_to_h265_or_change_container "$file" "$h265_path" "$codec"
-}
-
+function find_files () {
 while true; do
     log "INFO" "Searching for files in $actual_dir..." "$log_file"
 
@@ -256,5 +246,63 @@ while true; do
     log "INFO" "Waiting 10 seconds before the next iteration..." "$log_file"
     sleep 10
 done
+}
+
+# Call the find_files function to start processing
+if [[ -z "$actual_dir" ]]; then
+    echo "Error: No directory specified. Use --dir to define it."
+    exit 1
+fi
+
+find_files
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --help|-h)
+            display_help
+            ;;
+        --version|-v)
+            source $SHARE_PATH/version
+            echo "$PACKAGE_NAME version $VERSION"
+            exit 0
+            ;;
+        --dir|-d)
+            if [[ -n "$2" ]]; then
+                actual_dir="$2"
+                find_files
+                shift
+            else
+                echo "Error: --dir requires a directory path as an argument."
+                exit 1
+            fi
+            ;;
+        --file|-f)
+            if [[ -n "$2" ]]; then
+                process_file "$2"
+            else
+                echo "Error: --file requires a file path as an argument."
+                exit 1
+            fi
+            ;;
+        --log-level)
+            if [[ -n "$2" ]]; then
+                LOG_LEVEL="$2"
+                shift
+            else
+                echo "Error: --log-level requires a log level as an argument."
+                exit 1
+            fi
+            ;;
+        *)
+            echo "Unknown option: $1"
+            display_help
+            ;;
+    esac
+    shift
+done
+
+# Export LOG_LEVEL for use in logging.sh
+export LOG_LEVEL
 
 exit 0
