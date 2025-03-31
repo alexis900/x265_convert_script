@@ -254,6 +254,18 @@ if [[ -z "$actual_dir" ]]; then
     exit 1
 fi
 
+check_update_version(){
+    source $SHARE_PATH/version
+    local current_version=$VERSION
+    local latest_version=$(curl -s $check_update_version | grep -oP 'VERSION=\K[0-9.]+')
+    
+    if [[ "$current_version" != "$latest_version" ]]; then
+        echo "A new version is available: $latest_version (current: $current_version)"
+    else
+        echo "You are using the latest version: $current_version"
+    fi
+}
+
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -261,7 +273,7 @@ while [[ $# -gt 0 ]]; do
             display_help
             ;;
         --version|-v)
-            source $SHARE_PATH/version
+            check_update_version
             echo "$PACKAGE_NAME version $VERSION"
             exit 0
             ;;

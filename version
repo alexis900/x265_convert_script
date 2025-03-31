@@ -1,6 +1,6 @@
 PACKAGE_NAME="x265-convert-script"
 VERSION=0.0.0.10
-BRANCH=alpha
+CHANNEL=alpha
 RELEASE="1"
 ARCHITECTURE="all"
 MAINTAINER="Alejandro Martin Perez <alejandro.martinpz98@outlook.com>"

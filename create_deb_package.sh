@@ -13,7 +13,7 @@ mkdir -p debian/usr/local/share/x265_convert_script
 # Create the control file
 cat <<EOF > debian/DEBIAN/control
 Package: $PACKAGE_NAME
-Version: $VERSION-$BRANCH
+Version: $VERSION-$CHANNEL
 Section: utils
 Priority: optional
 Architecture: $ARCHITECTURE
