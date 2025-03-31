@@ -13,7 +13,7 @@ mkdir -p debian/usr/local/share/x265_convert_script
 # Create the control file
 cat <<EOF > debian/DEBIAN/control
 Package: $PACKAGE_NAME
-Version: $VERSION
+Version: $VERSION-$CHANNEL
 Section: utils
 Priority: optional
 Architecture: $ARCHITECTURE
@@ -59,9 +59,9 @@ cp version debian/usr/local/share/x265_convert_script/version
 dpkg-deb --build debian
 
 # Rename the package with the appropriate name
-mv debian.deb ${PACKAGE_NAME}_${VERSION}_${ARCHITECTURE}.deb
+mv debian.deb ${PACKAGE_NAME}_${VERSION}-${CHANNEL}_${ARCHITECTURE}.deb
 
 # Clean up
 rm -rf debian
 
-echo "Package ${PACKAGE_NAME}_${VERSION}_${ARCHITECTURE}.deb created successfully."
+echo "Package ${PACKAGE_NAME}_${VERSION}-${CHANNEL}_${ARCHITECTURE}.deb created successfully."
