@@ -254,8 +254,6 @@ if [[ -z "$actual_dir" ]]; then
     exit 1
 fi
 
-find_files
-
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -301,6 +299,8 @@ while [[ $# -gt 0 ]]; do
     esac
     shift
 done
+
+find_files
 
 # Export LOG_LEVEL for use in logging.sh
 export LOG_LEVEL

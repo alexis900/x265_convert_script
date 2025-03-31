@@ -20,17 +20,12 @@ This script converts video files to H265 (HEVC) format or changes their containe
     ./convert_x265.sh --dir /path/to/custom/directory
     ```
 
-3. Specify a single file to process using the `--file` argument:
-    ```bash
-    ./convert_x265.sh --file /path/to/file
-    ```
-
-4. Display the version of the script using the `--version` argument:
+3. Display the version of the script using the `--version` argument:
     ```bash
     ./convert_x265.sh --version
     ```
 
-5. Display help information using the `--help` argument:
+4. Display help information using the `--help` argument:
     ```bash
     ./convert_x265.sh --help
     ```
@@ -40,9 +35,8 @@ This script converts video files to H265 (HEVC) format or changes their containe
 - `--help` or `-h`: Displays help information about the script and its usage.
 - `--version` or `-v`: Displays the version information of the script.
 - `--dir PATH` or `-d PATH`: Specifies a custom directory to process. This overrides the `actual_dir` variable defined in the `env.sh` file.
-- `--file FILE` or `-f FILE`: Specifies a single file to process instead of processing an entire directory.
 
-If no directory is specified using `--dir` or no file is specified using `--file`, the script will use the default directory specified in `env.sh`.
+If no directory is specified using `--dir`, the script will use the default directory specified in `env.sh`.
 
 ## Environment Variables
 
@@ -77,7 +71,7 @@ remaining_log="/path/to/log/file/remaining.log"
 
 ## Additional Scripts
 
-- `check_x265.sh`: Checks for pending files that need to be processed. It verifies the existence of required files (`env.sh`, `logging.sh`, `file_utils.sh`) before proceeding. If any of these files are missing, the script exits with an error. Additionally, it ensures the directory specified in `actual_dir` exists before searching for pending files. It logs the files that have not been processed yet and skips those that have the 'larger' attribute set.
+- `check_x265.sh`: Checks for pending files that need to be processed. It logs the files that have not been processed yet and skips those that have the 'larger' attribute set.
 - `logging.sh`: Contains the `log` function used for logging events.
 - `file_utils.sh`: Contains utility functions for file operations, including finding pending files and checking extended attributes.
 
