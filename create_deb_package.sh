@@ -59,9 +59,9 @@ cp version debian/usr/local/share/x265_convert_script/version
 dpkg-deb --build debian
 
 # Rename the package with the appropriate name
-mv debian.deb ${PACKAGE_NAME}_${VERSION}-${BRANCH}_${ARCHITECTURE}.deb
+mv debian.deb ${PACKAGE_NAME}_${VERSION}-${CHANNEL}_${ARCHITECTURE}.deb
 
 # Clean up
 rm -rf debian
 
-echo "Package ${PACKAGE_NAME}_${VERSION}-${BRANCH}_${ARCHITECTURE}.deb created successfully."
+echo "Package ${PACKAGE_NAME}_${VERSION}-${CHANNEL}_${ARCHITECTURE}.deb created successfully."
