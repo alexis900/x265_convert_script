@@ -50,7 +50,7 @@ chmod +x debian/DEBIAN/postinst
 # Copy the scripts to the appropriate directories
 cp convert_x265 debian/usr/local/bin/convert_x265
 cp check_x265 debian/usr/local/bin/check_x265
-cp env.sh debian/usr/local/share/x265_convert_script/env.sh
+cp preferences.conf debian/usr/local/share/x265_convert_script/preferences.conf
 cp logging.sh debian/usr/local/share/x265_convert_script/logging.sh
 cp file_utils.sh debian/usr/local/share/x265_convert_script/file_utils.sh
 cp version debian/usr/local/share/x265_convert_script/version
