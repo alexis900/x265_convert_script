@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # This script contains utility functions for the x265 convert script.
-
+SHARE_PATH="/usr/local/share/x265_convert_script"
 # Load environment variables
-source preferences.conf
+source $SHARE_PATH/preferences.conf
 
 # Verify if the required files exist
 required_files=("preferences.conf")

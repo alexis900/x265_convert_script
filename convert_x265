@@ -1,11 +1,28 @@
 #!/bin/bash
 
 # This script converts video files to H265 (HEVC) format or changes their container.
-
+SHARE_PATH="/usr/local/share/x265_convert_script"
 # Load environment variables and utility functions
-source preferences.conf
-source $SHARE_PATH/logging.sh
-source $SHARE_PATH/file_utils.sh
+if [[ -f "$SHARE_PATH/preferences.conf" ]]; then
+    source $SHARE_PATH/preferences.conf
+else
+    echo "Error: preferences.conf not found in the current directory. Exiting..."
+    exit 1
+fi
+
+if [[ -f "$SHARE_PATH/logging.sh" ]]; then
+    source $SHARE_PATH/logging.sh
+else
+    echo "Error: logging.sh not found in $SHARE_PATH. Exiting..."
+    exit 1
+fi
+
+if [[ -f "$SHARE_PATH/file_utils.sh" ]]; then
+    source $SHARE_PATH/file_utils.sh
+else
+    echo "Error: file_utils.sh not found in $SHARE_PATH. Exiting..."
+    exit 1
+fi
 
 # Verify if the required files exist
 required_files=("logging.sh" "file_utils.sh" "preferences.conf")
