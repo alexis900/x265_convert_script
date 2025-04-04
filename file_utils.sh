@@ -1,20 +1,7 @@
 #!/bin/bash
 
 # This script contains utility functions for the x265 convert script.
-SHARE_PATH="/usr/local/share/x265_convert_script"
-# Load environment variables
-source $SHARE_PATH/preferences.conf
 
-# Verify if the required files exist
-required_files=("preferences.conf")
-for file in "${required_files[@]}"; do
-    if [[ ! -f "$SHARE_PATH/$file" ]]; then
-        echo "Error: Required file $file does not exist. Exiting..."
-        exit 1
-    fi
-done
-
-# Function to find pending files
 find_pending_files() {
     find "$actual_dir" -type f \
         \( -name "*.mkv" -o -name "*.avi" -o -name "*.mp4" -o -name "*.mov" -o -name "*.wmv" -o -name "*.flv" -o -name "*.m4v" -o -name "*.webm" -o -name "*.3gp" \) \
@@ -56,3 +43,8 @@ mark_xattr_larger() {
         log "ERROR" "xattr is not available on this system" "$log_file"
     fi
 }
+
+export -f find_pending_files
+export -f detect_codec
+export -f check_xattr_larger
+export -f mark_xattr_larger

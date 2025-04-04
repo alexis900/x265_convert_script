@@ -9,6 +9,7 @@ source $SHARE_PATH/version
 mkdir -p debian/DEBIAN
 mkdir -p debian/usr/local/bin
 mkdir -p debian/usr/local/share/x265_convert_script
+mkdir -p debian/usr/share/metainfo
 
 # Create the control file
 cat <<EOF > debian/DEBIAN/control
@@ -53,7 +54,11 @@ cp check_x265 debian/usr/local/bin/check_x265
 cp preferences.conf debian/usr/local/share/x265_convert_script/preferences.conf
 cp logging.sh debian/usr/local/share/x265_convert_script/logging.sh
 cp file_utils.sh debian/usr/local/share/x265_convert_script/file_utils.sh
+cp check_update.sh debian/usr/local/share/x265_convert_script/check_update.sh
 cp version debian/usr/local/share/x265_convert_script/version
+
+# Copy the appdata.xml file to the appropriate directory for GNOME Software Store
+cp appdata.xml debian/usr/share/metainfo/appdata.xml
 
 # Build the package
 dpkg-deb --build debian

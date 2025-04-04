@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="console-application">
+  <id>x265_convert_script</id>
+  <releases>
+    <release version="@release-version@" date="@build-date@"/>
+  </releases>
+  <project_license>MIT</project_license>
+  <metadata_license>CC0-1.0</metadata_license>
+  <name>x265 Convert Script</name>
+  <summary>A script to convert video files to H265 (HEVC) format or change their container.</summary>
+  <description>
+    <p>The x265 Convert Script is a tool designed to convert video files to the H265 (HEVC) format or change their container to MKV if they are already in H265. It ensures efficient compression while maintaining quality and supports various codecs and formats.</p>
+  </description>
+  <launchable type="script">/usr/local/bin/convert_x265</launchable>
+  <provides>
+    <binary>x265_convert_script</binary>
+  </provides>
+  <url type="homepage">https://github.com/alexis900/x265_convert_script</url>
+  <url type="bugtracker">https://github.com/alexis900/x265_convert_script/issues</url>
+  <url type="help">https://github.com/alexis900/x265_convert_script/wiki</url>
+</component>

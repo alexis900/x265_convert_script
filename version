@@ -1,8 +1,9 @@
 PACKAGE_NAME="x265-convert-script"
-VERSION=0.0.0.11
+VERSION=0.0.0.12
 CHANNEL=alpha
 RELEASE="1"
 ARCHITECTURE="all"
 MAINTAINER="Alejandro Martin Perez <alejandro.martinpz98@outlook.com>"
 DESCRIPTION="A script to convert video files to H265 (HEVC) format or change their container."
 DEPENDENCIES="ffmpeg, xattr"
+LICENSE="MIT"

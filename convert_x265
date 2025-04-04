@@ -257,18 +257,6 @@ if [[ -z "$actual_dir" ]]; then
     exit 1
 fi
 
-check_update_version(){
-    source $SHARE_PATH/version
-    local current_version=$VERSION-$CHANNEL
-    local latest_version=$(curl -s $check_update_v | grep -oP 'VERSION=\K[0-9.]+')
-    
-    if [[ "$current_version" != "$latest_version-$CHANNEL" ]]; then
-        echo "A new version is available: "$latest_version" (current: $current_version)"
-    else
-        echo "You are using the latest version: $current_version"
-    fi
-}
-
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -276,6 +264,7 @@ while [[ $# -gt 0 ]]; do
             display_help
             ;;
         --version|-v)
+            source $SHARE_PATH/check_update.sh
             check_update_version
             exit 0
             ;;
