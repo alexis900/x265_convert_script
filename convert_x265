@@ -2,16 +2,19 @@
 
 # This script converts video files to H265 (HEVC) format or changes their container.
 
-# SHARE_PATH="/usr/local/share/x265_convert_script"
-SHARE_PATH="."
-
 # Load environment variables and utility functions
-source $SHARE_PATH/env.sh
+source preferences.conf
 source $SHARE_PATH/logging.sh
 source $SHARE_PATH/file_utils.sh
 
-# Default log level
-LOG_LEVEL="DEBUG"
+# Verify if the required files exist
+required_files=("logging.sh" "file_utils.sh" "preferences.conf")
+for file in "${required_files[@]}"; do
+    if [[ ! -f "$SHARE_PATH/$file" ]]; then
+        echo "Error: Required file $file does not exist in $SHARE_PATH. Exiting..."
+        exit 1
+    fi
+done
 
 # Function to set log level
 set_log_level() {
@@ -52,25 +55,7 @@ display_help() {
     exit 0
 }
 
-# Verify if the required files exist
-required_files=("env.sh" "logging.sh" "file_utils.sh")
-for file in "${required_files[@]}"; do
-    if [[ ! -f "$SHARE_PATH/$file" ]]; then
-        echo "Error: Required file $file does not exist. Exiting..."
-        exit 1
-    fi
-done
 
-# Common ffmpeg parameters
-FFMPEG_PRESET="medium"
-FFMPEG_CRF=22
-FFMPEG_VIDEO_CODEC="libx265"
-FFMPEG_AUDIO_CODEC="copy"
-FFMPEG_SUBTITLE_CODEC="srt"
-FFMPEG_LOG_LEVEL="error"
-
-# Backup directory
-BACKUP_DIR="$actual_dir/backup"
 
 # Function to create a backup of the original file
 backup_file() {
@@ -229,23 +214,24 @@ handle_signal() {
 trap handle_signal SIGINT SIGTERM
 
 function find_files () {
-while true; do
-    log "INFO" "Searching for files in $actual_dir..." "$log_file"
 
-    files=$(find_pending_files)
+    while true; do
+        log "INFO" "Searching for files in $actual_dir..." "$log_file"
 
-    if [[ -z "$files" ]]; then
-        log "INFO" "No files found to convert or change container. Exiting..." "$log_file"
-        break
-    fi
+        files=$(find_pending_files)
 
-    while IFS= read -r file; do
-        process_file "$file"
-    done <<< "$files"
+        if [[ -z "$files" ]]; then
+            log "INFO" "No files found to convert or change container. Exiting..." "$log_file"
+            break
+        fi
 
-    log "INFO" "Waiting 10 seconds before the next iteration..." "$log_file"
-    sleep 10
-done
+        while IFS= read -r file; do
+            process_file "$file"
+        done <<< "$files"
+
+        log "INFO" "Waiting 10 seconds before the next iteration..." "$log_file"
+        sleep 10
+    done
 }
 
 # Call the find_files function to start processing
@@ -256,11 +242,11 @@ fi
 
 check_update_version(){
     source $SHARE_PATH/version
-    local current_version=$VERSION
-    local latest_version=$(curl -s $check_update_version | grep -oP 'VERSION=\K[0-9.]+')
+    local current_version=$VERSION-$CHANNEL
+    local latest_version=$(curl -s $check_update_v | grep -oP 'VERSION=\K[0-9.]+')
     
-    if [[ "$current_version" != "$latest_version" ]]; then
-        echo "A new version is available: $latest_version (current: $current_version)"
+    if [[ "$current_version" != "$latest_version-$CHANNEL" ]]; then
+        echo "A new version is available: "$latest_version" (current: $current_version)"
     else
         echo "You are using the latest version: $current_version"
     fi
@@ -274,7 +260,6 @@ while [[ $# -gt 0 ]]; do
             ;;
         --version|-v)
             check_update_version
-            echo "$PACKAGE_NAME version $VERSION"
             exit 0
             ;;
         --dir|-d)
@@ -289,9 +274,23 @@ while [[ $# -gt 0 ]]; do
             ;;
         --file|-f)
             if [[ -n "$2" ]]; then
-                process_file "$2"
+                if [[ -f "$2" ]]; then
+                    process_file "$2"
+                else
+                    echo "Error: File $2 does not exist."
+                    exit 1
+                fi
             else
-                echo "Error: --file requires a file path as an argument."
+            echo "Error: --file requires a file path as an argument."
+            exit 1
+            fi
+            ;;
+        --codec|-c)
+            if [[ -n "$2" ]]; then
+                detect_codec "$2"
+                exit 0
+            else
+                echo "Error: --codec requires a codec as an argument."
                 exit 1
             fi
             ;;

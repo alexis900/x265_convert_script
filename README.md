@@ -34,27 +34,31 @@ This script converts video files to H265 (HEVC) format or changes their containe
 
 - `--help` or `-h`: Displays help information about the script and its usage.
 - `--version` or `-v`: Displays the version information of the script.
-- `--dir PATH` or `-d PATH`: Specifies a custom directory to process. This overrides the `actual_dir` variable defined in the `env.sh` file.
+- `--dir PATH` or `-d PATH`: Specifies a custom directory to process. This overrides the `actual_dir` variable defined in the `preferences.conf` file.
+- `--file PATH` or `-f PATH`: Specifies a single file to process.
+- `--codec CODEC` or `-c CODEC`: Detects the codec of the specified file.
+- `--log-level LEVEL`: Sets the log level (DEBUG, INFO, WARNING, ERROR).
 
-If no directory is specified using `--dir`, the script will use the default directory specified in `env.sh`.
+If no directory is specified using `--dir`, the script will use the default directory specified in `preferences.conf`.
 
 ## Environment Variables
 
-The `env.sh` file contains the following variables:
+The `preferences.conf` file contains the following variables:
 
 - `actual_dir`: The directory where the video files are located.
 - `log_file`: The path to the main log file.
 - `ffmpeg_log_file`: The path to the log file for `ffmpeg` output.
 - `remaining_log`: The path to the log file for remaining files.
-
-Example `env.sh` file:
-```bash
-# env.sh
-actual_dir="/path/to/video/directory"
-log_file="/path/to/log/file/convert.log"
-ffmpeg_log_file="/path/to/log/file/ffmpeg.log"
-remaining_log="/path/to/log/file/remaining.log"
-```
+- `check_update_v`: URL to check for script updates.
+- `SHARE_PATH`: Path to shared resources for the script.
+- `FFMPEG_PRESET`: Preset for `ffmpeg` encoding.
+- `FFMPEG_CRF`: Constant Rate Factor for video quality.
+- `FFMPEG_VIDEO_CODEC`: Video codec to use (default: `libx265`).
+- `FFMPEG_AUDIO_CODEC`: Audio codec to use (default: `copy`).
+- `FFMPEG_SUBTITLE_CODEC`: Subtitle codec to use (default: `srt`).
+- `FFMPEG_LOG_LEVEL`: Log level for `ffmpeg` (default: `error`).
+- `BACKUP_DIR`: Directory for storing backups of original files.
+- `LOG_LEVEL`: Default log level for the script (default: `DEBUG`).
 
 ## Main Functions
 
@@ -68,6 +72,23 @@ remaining_log="/path/to/log/file/remaining.log"
 - `cleanup_temp_files()`: Cleans up temporary files created during the conversion process.
 - `handle_signal()`: Handles signals (e.g., SIGINT, SIGTERM) to clean up and exit gracefully.
 - `process_file()`: Processes a single file for conversion or container change.
+
+## Recent Changes
+
+- **H265 Size Estimation**: The script now estimates the file size after conversion to H265 to decide whether to switch the codec to H264.
+- **Quality Verification**: Compares the duration of the original and converted files to ensure quality.
+- **Subtitle Handling**: Detects if the file has valid subtitles and includes them in the conversion if necessary.
+- **Backup and Restore**: Creates a backup of the original file before conversion and restores it in case of failures.
+- **Signal Handling**: Cleans up temporary files and exits safely upon receiving signals like SIGINT or SIGTERM.
+- **Log Level Parameter**: Allows configuring the log level (DEBUG, INFO, WARNING, ERROR) using the `--log-level` argument.
+
+### New Functions
+
+- `estimate_h265_size()`: Estimates the file size after conversion to H265.
+- `verify_quality()`: Verifies the quality of the converted file by comparing its duration with the original.
+- `has_valid_subtitles()`: Checks if the file has valid subtitles (srt, subrip, ass, ssa).
+- `backup_file()` and `delete_backup()`: Manage the creation and deletion of backups for original files.
+- `handle_signal()`: Handles signals to clean up temporary files and exit safely.
 
 ## Additional Scripts
 

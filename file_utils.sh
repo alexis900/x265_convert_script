@@ -2,13 +2,11 @@
 
 # This script contains utility functions for the x265 convert script.
 
-SHARE_PATH="/usr/local/share/x265_convert_script"
-
 # Load environment variables
-source $SHARE_PATH/env.sh
+source preferences.conf
 
 # Verify if the required files exist
-required_files=("env.sh")
+required_files=("preferences.conf")
 for file in "${required_files[@]}"; do
     if [[ ! -f "$SHARE_PATH/$file" ]]; then
         echo "Error: Required file $file does not exist. Exiting..."
