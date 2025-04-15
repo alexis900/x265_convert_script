@@ -15,9 +15,9 @@ fi
 check_update_version(){
     source $SHARE_PATH/version
     local current_version="$VERSION-$CHANNEL"
-    local latest_version=$(curl -s $check_update_v | grep -oP 'VERSION=\K[0-9]+(\.[0-9]+){3}')
-    local latest_channel=$(curl -s $check_update_v | grep -oP 'CHANNEL=\K[a-zA-Z]+')
-
+    local response=$(curl -s $CHECK_VERSION_UPDATE)
+    local latest_version=$(echo "$response" | grep -oP 'VERSION=\K[0-9]+(\.[0-9]+){3}')
+    local latest_channel=$(echo "$response" | grep -oP 'CHANNEL=\K[a-zA-Z]+')
     IFS='.' read -r -a current_parts <<< "$VERSION"
     IFS='.' read -r -a latest_parts <<< "$latest_version"
 
@@ -29,11 +29,6 @@ check_update_version(){
             break
         fi
     done
-
-    if [[ "$latest_channel" != "$CHANNEL" ]]; then
-        echo "A new channel is available: $latest_version-$latest_channel (current: $current_version)"
-        return
-    fi
 
     echo "You are using the latest version: $current_version"
 }

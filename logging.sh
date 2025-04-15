@@ -6,6 +6,19 @@ declare -A LOG_LEVELS=(["DEBUG"]=0 ["INFO"]=1 ["WARNING"]=2 ["ERROR"]=3)
 # Default to DEBUG if LOG_LEVEL is not set
 LOG_LEVEL="${LOG_LEVEL:-DEBUG}"
 
+# Function to set log level
+set_log_level() {
+    case "$1" in
+        DEBUG|INFO|WARNING|ERROR)
+            LOG_LEVEL="$1"
+            ;;
+        *)
+            echo "Invalid log level: $1. Valid levels are DEBUG, INFO, WARNING, ERROR."
+            exit 1
+            ;;
+    esac
+}
+
 log() {
     local level="$1"
     local message="$2"

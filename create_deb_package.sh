@@ -55,6 +55,7 @@ cp preferences.conf debian/usr/local/share/x265_convert_script/preferences.conf
 cp logging.sh debian/usr/local/share/x265_convert_script/logging.sh
 cp file_utils.sh debian/usr/local/share/x265_convert_script/file_utils.sh
 cp check_update.sh debian/usr/local/share/x265_convert_script/check_update.sh
+cp backup.sh debian/usr/local/share/x265_convert_script/backup.sh
 cp version debian/usr/local/share/x265_convert_script/version
 
 # Copy the appdata.xml file to the appropriate directory for GNOME Software Store
