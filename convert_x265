@@ -2,7 +2,7 @@
 
 # This script converts video files to H265 (HEVC) format or changes their container.
 SHARE_PATH="/usr/local/share/x265_convert_script"
-SHARE_PATH="$(pwd)"
+#SHARE_PATH="$(pwd)"
 # Load environment variables and utility functions
 if [[ -f "$SHARE_PATH/preferences.conf" ]]; then
     source "$SHARE_PATH/preferences.conf"
@@ -221,12 +221,6 @@ function find_files () {
     done
 }
 
-# Call the find_files function to start processing
-if [[ -z "$actual_dir" ]]; then
-    echo "Error: No directory specified. Use --dir to define it."
-    exit 1
-fi
-
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -234,14 +228,13 @@ while [[ $# -gt 0 ]]; do
             display_help
             ;;
         --version|-v)
-            source $SHARE_PATH/check_update.sh
+            source "$SHARE_PATH/check_update.sh"
             check_update_version
             exit 0
             ;;
         --dir|-d)
             if [[ -n "$2" ]]; then
                 actual_dir="$2"
-                find_files
                 shift
             else
                 echo "Error: --dir requires a directory path as an argument."
@@ -286,6 +279,12 @@ while [[ $# -gt 0 ]]; do
     esac
     shift
 done
+
+# Ensure a directory is specified if --dir or --file is not used
+if [[ -z "$actual_dir" ]]; then
+    echo "Error: No directory specified. Use --dir to define it."
+    exit 1
+fi
 
 find_files
 
