@@ -1,0 +1,90 @@
+.TH CONVERT_X265 1 "2025-01-01" "1.0" "User Commands"
+.SH NAME
+convert_x265 \- Convert video files to H265 (HEVC) format or change their container.
+
+.SH SYNOPSIS
+.B convert_x265
+[OPTIONS]
+
+.SH DESCRIPTION
+This script processes video files, converting them to H265 (HEVC) format or changing their container. It supports batch processing of files in a directory and includes options for logging, codec selection, and quality verification.
+
+.SH OPTIONS
+.TP
+.B --help, -h
+Display this help message and exit.
+.TP
+.B --version, -v
+Display the version information and check for updates.
+.TP
+.B --dir PATH, -d PATH
+Specify the directory to process. Overrides the default directory specified in preferences.conf.
+.TP
+.B --file PATH, -f PATH
+Specify a single file to process.
+.TP
+.B --codec CODEC, -c CODEC
+Specify the codec to use for conversion (e.g., libx265, libx264). Overrides the default codec in preferences.conf.
+.TP
+.B --log-level LEVEL
+Set the log level for the script. Valid levels are DEBUG, INFO, WARNING, and ERROR.
+
+.SH EXAMPLES
+.TP
+Convert all files in a directory:
+.B convert_x265 --dir /path/to/videos
+.TP
+Convert a single file:
+.B convert_x265 --file /path/to/video.mp4
+.TP
+Specify a custom codec:
+.B convert_x265 --file /path/to/video.mp4 --codec libx264
+.TP
+Set the log level to DEBUG:
+.B convert_x265 --log-level DEBUG
+
+.SH FILES
+.TP
+.B /usr/local/share/x265_convert_script/preferences.conf
+Configuration file containing default settings for the script.
+.TP
+.B /var/log/x265_convert_script.log
+Main log file for the script.
+.TP
+.B /var/log/ffmpeg.log
+Log file for FFmpeg output.
+.TP
+.B /var/log/remaining.log
+Log file for tracking remaining files.
+
+.SH ENVIRONMENT
+.TP
+.B LOG_LEVEL
+Default log level for the script. Can be overridden with the --log-level option.
+.TP
+.B ACTUAL_DIR
+Default directory to process. Can be overridden with the --dir option.
+
+.SH EXIT STATUS
+.TP
+.B 0
+Success.
+.TP
+.B 1
+General error.
+.TP
+.B 2
+Invalid arguments or missing files.
+
+.SH AUTHOR
+Written by Alexis900.
+
+.SH REPORTING BUGS
+Report bugs to <https://github.com/alexis900/x265_convert_script/issues>.
+
+.SH SEE ALSO
+.BR ffmpeg (1),
+.BR ffprobe (1)
+
+.SH COPYRIGHT
+Copyright \(c) 2025 Alexis900. Licensed under the MIT License.

@@ -10,6 +10,7 @@ mkdir -p debian/DEBIAN
 mkdir -p debian/usr/local/bin
 mkdir -p debian/usr/local/share/x265_convert_script
 mkdir -p debian/usr/share/metainfo
+mkdir -p debian/usr/share/man/man1
 
 # Create the control file
 cat <<EOF > debian/DEBIAN/control
@@ -60,6 +61,11 @@ cp version debian/usr/local/share/x265_convert_script/version
 
 # Copy the appdata.xml file to the appropriate directory for GNOME Software Store
 cp appdata.xml debian/usr/share/metainfo/appdata.xml
+
+# Copy the man page to the appropriate directory
+echo "Installing man page for convert_x265..."
+cp convert_x265.1 debian/usr/share/man/man1/convert_x265.1
+gzip -f debian/usr/share/man/man1/convert_x265.1
 
 # Build the package
 dpkg-deb --build debian

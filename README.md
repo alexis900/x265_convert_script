@@ -45,11 +45,11 @@ If no directory is specified using `--dir`, the script will use the default dire
 
 The `preferences.conf` file contains the following variables:
 
-- `actual_dir`: The directory where the video files are located.
-- `log_file`: The path to the main log file.
-- `ffmpeg_log_file`: The path to the log file for `ffmpeg` output.
-- `remaining_log`: The path to the log file for remaining files.
-- `check_update_v`: URL to check for script updates.
+- `ACTUAL_DIR`: The directory where the video files are located.
+- `LOG_FILE`: The path to the main log file.
+- `FFMPG_LOG_FILE`: The path to the log file for `ffmpeg` output.
+- `REMAINING_LOG`: The path to the log file for remaining files.
+- `CHECK_LATESTS_VERSION`: URL to check for script updates.
 - `SHARE_PATH`: Path to shared resources for the script.
 - `FFMPEG_PRESET`: Preset for `ffmpeg` encoding.
 - `FFMPEG_CRF`: Constant Rate Factor for video quality.
@@ -89,6 +89,24 @@ The `preferences.conf` file contains the following variables:
 - `has_valid_subtitles()`: Checks if the file has valid subtitles (srt, subrip, ass, ssa).
 - `backup_file()` and `delete_backup()`: Manage the creation and deletion of backups for original files.
 - `handle_signal()`: Handles signals to clean up temporary files and exit safely.
+
+## Man Page
+
+A man page is available for the `convert_x265` script. It provides detailed usage instructions, options, and examples.
+
+### Viewing the Man Page
+
+After installation, you can view the man page using the following command:
+
+```bash
+man convert_x265
+```
+
+The man page is installed in `/usr/share/man/man1/convert_x265.1.gz` and is automatically compressed during the installation process.
+
+### Integration into Installation
+
+The man page is now part of the installation process. When you build and install the `.deb` package using the `create_deb_package.sh` script, the man page is automatically placed in the appropriate directory (`/usr/share/man/man1/`) and compressed for use with the `man` command.
 
 ## Additional Scripts
 
