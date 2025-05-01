@@ -3,7 +3,7 @@
 # This script contains utility functions for the x265 convert script.
 
 find_pending_files() {
-    find "$actual_dir" -type f \
+    find "${ACTUAL_DIR}" -type f \
         \( -name "*.mkv" -o -name "*.avi" -o -name "*.mp4" -o -name "*.mov" -o -name "*.wmv" -o -name "*.flv" -o -name "*.m4v" -o -name "*.webm" -o -name "*.3gp" \) \
         -not -name "*.h265.mkv" -not -name "*.x265.mkv" | while read -r f; do
             codec=$(detect_codec "$f")
@@ -29,7 +29,7 @@ check_xattr_larger() {
     if command -v xattr &>/dev/null; then
         xattr -p user.larger "$file" 2>/dev/null
     else
-        log "ERROR" "xattr is not available on this system" "$log_file"
+        log "ERROR" "xattr is not available on this system" "${LOG_FILE}"
         return 1
     fi
 }
@@ -40,7 +40,7 @@ mark_xattr_larger() {
     if command -v xattr &>/dev/null; then
         xattr -w user.larger true "$file"
     else
-        log "ERROR" "xattr is not available on this system" "$log_file"
+        log "ERROR" "xattr is not available on this system" "${LOG_FILE}"
     fi
 }
 

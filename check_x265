@@ -4,10 +4,9 @@
 SHARE_PATH="/usr/local/share/x265_convert_script"
 
 # Load environment variables and utility functions
-source $SHARE_PATH/preferences.conf
-source $SHARE_PATH/logging.sh
-source $SHARE_PATH/file_utils.sh
-source $SHARE_PATH/preferences.conf
+source "$SHARE_PATH/preferences.conf"
+source "$SHARE_PATH/logging.sh"
+source "$SHARE_PATH/file_utils.sh"
 
 # Verify if the required files exist
 required_files=("preferences.conf" "logging.sh" "file_utils.sh")
@@ -18,13 +17,13 @@ for file in "${required_files[@]}"; do
     fi
 done
 
-log "INFO" "Checking directory: $actual_dir" "$remaining_log"
-if [ ! -d "$actual_dir" ]; then
-    log "ERROR" "Error! Directory $actual_dir does not exist." "$remaining_log"
+log "INFO" "Checking directory: ${ACTUAL_DIR}" "${REMAINING_LOG}"
+if [ ! -d "${ACTUAL_DIR}" ]; then
+    log "ERROR" "Error! Directory ${ACTUAL_DIR} does not exist." "${REMAINING_LOG}"
     exit 1
 fi
 
-log "INFO" "Searching for pending files..." "$remaining_log"
+log "INFO" "Searching for pending files..." "${REMAINING_LOG}"
 
 files_pending=$(find_pending_files)
 
@@ -33,11 +32,11 @@ while IFS= read -r file; do
     xattr_output=$(check_xattr_larger "$file")
 
     if [[ -n "$xattr_output" ]]; then
-        log "DEBUG" "File $file already processed or marked as larger." "$remaining_log"
+        log "DEBUG" "File $file already processed or marked as larger." "${REMAINING_LOG}"
         continue
     else
-        log "INFO" "Pending file to process: $file" "$remaining_log"
+        log "INFO" "Pending file to process: $file" "${REMAINING_LOG}"
     fi
 done <<< "$files_pending"
 
-log "INFO" "Finished searching for pending files." "$remaining_log"
+log "INFO" "Finished searching for pending files." "${REMAINING_LOG}"
