@@ -2,6 +2,7 @@
 
 # This script contains utility functions for the x265 convert script.
 
+
 find_pending_files() {
     find "${ACTUAL_DIR}" -type f \
         \( -name "*.mkv" -o -name "*.avi" -o -name "*.mp4" -o -name "*.mov" -o -name "*.wmv" -o -name "*.flv" -o -name "*.m4v" -o -name "*.webm" -o -name "*.3gp" \) \
@@ -16,11 +17,6 @@ find_pending_files() {
                 echo "$f"
             fi
         done
-}
-
-# Function to detect the video codec of the file
-detect_codec() {
-    ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of csv=p=0 "$1"
 }
 
 # Function to check if the file has the 'larger' attribute
@@ -44,7 +40,18 @@ mark_xattr_larger() {
     fi
 }
 
+process_file() {
+    local file="$1"
+    local codec=$(detect_codec "$file")
+    if [[ -z "$codec" ]]; then
+        log "ERROR" "Error: Could not detect codec of file $file" "${LOG_FILE}"
+        return 1
+    fi
+    local new_path="$(dirname "$file")/$(basename "$file" | cut -d. -f1).x265.mkv"
+    log "DEBUG" "Detected codec for $file: $codec" "${LOG_FILE}"
+    convert_to_h265_or_change_container "$file" "$new_path" "$codec"
+}
+
 export -f find_pending_files
-export -f detect_codec
 export -f check_xattr_larger
 export -f mark_xattr_larger

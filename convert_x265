@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # This script converts video files to H265 (HEVC) format or changes their container.
-SHARE_PATH="/usr/local/share/x265_convert_script"
-#SHARE_PATH="$(pwd)"
+#SHARE_PATH="/usr/local/share/x265_convert_script"
+SHARE_PATH="$(pwd)"
 SRC_PATH="$SHARE_PATH/src"
 # Load environment variables and utility functions
 if [[ -f "$SHARE_PATH/config/preferences.conf" ]]; then
@@ -40,6 +40,13 @@ else
     exit 1
 fi
 
+if [[ -f "$SRC_PATH/media_utils.sh" ]]; then
+    source "$SRC_PATH/media_utils.sh"
+else
+    echo "Error: media_utils.sh not found in $SRC_PATH. Exiting..."
+    exit 1
+fi
+
 
 # Verify if the required files exist
 declare -A required_files=(
@@ -48,6 +55,7 @@ declare -A required_files=(
     ["file_utils.sh"]="$SRC_PATH"
     ["backup.sh"]="$SRC_PATH"
     ["check_update.sh"]="$SRC_PATH"
+    ["media_utils.sh"]="$SRC_PATH"
 )
 for file in "${!required_files[@]}"; do
     if [[ ! -f "${required_files[$file]}/$file" ]]; then
@@ -55,18 +63,6 @@ for file in "${!required_files[@]}"; do
         exit 1
     fi
 done
-
-process_file() {
-    local file="$1"
-    local codec=$(detect_codec "$file")
-    if [[ -z "$codec" ]]; then
-        log "ERROR" "Error: Could not detect codec of file $file" "${LOG_FILE}"
-        return 1
-    fi
-    local h265_path="$(dirname "$file")/$(basename "$file" | cut -d. -f1).x265.mkv"
-    log "DEBUG" "Detected codec for $file: $codec" "${LOG_FILE}"
-    convert_to_h265_or_change_container "$file" "$h265_path" "$codec"
-}
 
 
 # Function to display help
@@ -83,31 +79,31 @@ display_help() {
 }
 
 
-# Function to check if the file has valid subtitles
-has_valid_subtitles() {
-    ffprobe -v $FFMPEG_LOG_LEVEL -select_streams s -show_entries stream=codec_name -of csv=p=0 "$1" | grep -qE 'srt|subrip|ass|ssa'
-}
-
 # Function to estimate the size of the file after conversion to H265
+# Parameters:
+#   $1 - The input video file to estimate the size for.
 estimate_h265_size() {
     local input_file="$1"
     local part_duration=10  # Duration in seconds for parts
     local total_size=0
-    rm -f /tmp/tmp_h265_part_*.mkv
+    local total_parts=10 # Number of parts to split the file into
+
+    cleanup_temp_files
+
     log "INFO" "Estimating size for: $input_file" "${LOG_FILE}"
     
     # Ensure the /tmp directory exists
     mkdir -p /tmp
 
     # Convert the file in 10 parts of 10 seconds to estimate the size
-    for i in $(seq 0 9); do
+    for i in $(seq 0 ${total_parts}-1); do
         local tmp_output="/tmp/tmp_h265_part_$i.mkv"
         log "DEBUG" "Processing part $i of file $input_file" "${LOG_FILE}"
 
         ffmpeg -i "$input_file" -ss $((i * part_duration)) -t "$part_duration" -c:v libx265 -preset $FFMPEG_PRESET -crf $FFMPEG_CRF -c:a $FFMPEG_AUDIO_CODEC -sn -f matroska "$tmp_output" &>> "$ffmpeg_log_file"
 
         if [[ $? -ne 0 ]]; then
-            log "ERROR" "Error converting part $i of file $input_file" "${LOG_FILE}"
+            log "ERROR" "Error converting part $i of file $input_file. FFmpeg output: $(cat "$ffmpeg_log_file")" "${LOG_FILE}"
             cleanup_temp_files
             return 1
         fi
@@ -125,29 +121,11 @@ estimate_h265_size() {
     done
 
     # Delete all temporary files at once
-    rm /tmp/tmp_h265_part_*.mkv
+    cleanup_temp_files
 
     log "INFO" "Total estimated size for $input_file: $total_size bytes" "${LOG_FILE}"
     
     echo "$total_size"
-}
-
-# Function to verify the quality of the converted file
-verify_quality() {
-    local input_file="$1"
-    local output_file="$2"
-
-    log "INFO" "Verifying quality of converted file: $output_file" "${LOG_FILE}"
-
-    # Compare the duration of the original and converted files
-    local original_duration=$(ffprobe -v $FFMPEG_LOG_LEVEL -show_entries format=duration -of csv=p=0 "$input_file")
-    local converted_duration=$(ffprobe -v $FFMPEG_LOG_LEVEL -show_entries format=duration -of csv=p=0 "$output_file")
-
-    if [[ $(echo "$original_duration == $converted_duration" | bc -l) -eq 1 ]]; then
-        log "INFO" "The duration of the converted file matches the original." "${LOG_FILE}"
-    else
-        log "WARNING" "The duration of the converted file does not match the original." "${LOG_FILE}"
-    fi
 }
 
 # Function to convert the file to H265 or change the container
@@ -182,11 +160,9 @@ convert_to_h265_or_change_container() {
     fi
 
     if has_valid_subtitles "$input_file"; then
-        log "INFO" "The file has subtitles. Starting conversion with subtitles." "${LOG_FILE}"
-        ffmpeg -i "$input_file" -map 0 -c:v $FFMPEG_VIDEO_CODEC -preset $FFMPEG_PRESET -crf $FFMPEG_CRF -c:a $FFMPEG_AUDIO_CODEC -c:s $FFMPEG_SUBTITLE_CODEC "$output_file" 2>> "$ffmpeg_log_file"
+        video_convert "$input_file" "$output_file" "$FFMPEG_VIDEO_CODEC" "$FFMPEG_SUBTITLE_CODEC"
     else
-        log "INFO" "The file does not have subtitles. Starting conversion without subtitles." "${LOG_FILE}"
-        ffmpeg -i "$input_file" -c:v $FFMPEG_VIDEO_CODEC -preset $FFMPEG_PRESET -crf $FFMPEG_CRF -c:a $FFMPEG_AUDIO_CODEC -sn "$output_file" 2>> "$ffmpeg_log_file"
+        video_convert "$input_file" "$output_file" "$FFMPEG_VIDEO_CODEC" ""
     fi
 
     if [[ $? -eq 0 ]]; then
@@ -232,7 +208,7 @@ function find_files () {
         done <<< "$files"
 
         log "INFO" "Waiting 10 seconds before the next iteration..." "${LOG_FILE}"
-        sleep 10
+        sleep ${SLEEP_TIME}
     done
 }
 

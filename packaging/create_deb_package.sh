@@ -62,14 +62,23 @@ EOF
 chmod +x debian/DEBIAN/postinst
 
 # Copy the necessary files to the debian directory
-cp "$SHARE_PATH/convert_x265" debian/usr/local/bin/convert_x265
-cp "$SHARE_PATH/check_x265" debian/usr/local/bin/check_x265
-cp "$CONFIG_PATH/preferences.conf" debian/usr/local/share/x265_convert_script/config/preferences.conf
-cp "$SRC_PATH/logging.sh" debian/usr/local/share/x265_convert_script/src/logging.sh
-cp "$SRC_PATH/file_utils.sh" debian/usr/local/share/x265_convert_script/src/file_utils.sh
-cp "$SRC_PATH/check_update.sh" debian/usr/local/share/x265_convert_script/src/check_update.sh
-cp "$SRC_PATH/backup.sh" debian/usr/local/share/x265_convert_script/src/backup.sh
+# Copy binary files
+BIN_FILES=("$SHARE_PATH/convert_x265" "$SHARE_PATH/check_x265")
+for file in "${BIN_FILES[@]}"; do
+    cp "$file" "debian/usr/local/bin/$(basename "$file")"
+done
+
+# Copy version and configuration files
 cp "$SHARE_PATH/version" debian/usr/local/share/x265_convert_script/version
+cp "$CONFIG_PATH/preferences.conf" debian/usr/local/share/x265_convert_script/config/preferences.conf
+
+# Copy source scripts
+SRC_FILES=("logging.sh" "file_utils.sh" "check_update.sh" "backup.sh" "media_utils.sh")
+for file in "${SRC_FILES[@]}"; do
+    cp "$SRC_PATH/$file" "debian/usr/local/share/x265_convert_script/src/$file"
+done
+
+# Copy app metadata
 cp "$PACKAGING_PATH/appdata.xml" debian/usr/share/metainfo/appdata.xml
 
 # Install the man page
