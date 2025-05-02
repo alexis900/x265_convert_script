@@ -2,8 +2,9 @@
 
 # This script automates the generation of a .deb package for the x265 convert script.
 
-# Correct the paths to ensure the script works in the current directory
-SHARE_PATH=".."
+# Set SHARE_PATH to the absolute path of the project root
+SHARE_PATH="$(dirname $(dirname $(realpath $0)))"
+echo SHARE_PATH: $SHARE_PATH
 SRC_PATH="$SHARE_PATH/src"
 CONFIG_PATH="$SHARE_PATH/config"
 PACKAGING_PATH="$SHARE_PATH/packaging"
@@ -61,8 +62,8 @@ EOF
 chmod +x debian/DEBIAN/postinst
 
 # Copy the necessary files to the debian directory
-cp "$SHARE_PATH/bin/convert_x265" debian/usr/local/bin/convert_x265
-cp "$SHARE_PATH/bin/check_x265" debian/usr/local/bin/check_x265
+cp "$SHARE_PATH/convert_x265" debian/usr/local/bin/convert_x265
+cp "$SHARE_PATH/check_x265" debian/usr/local/bin/check_x265
 cp "$CONFIG_PATH/preferences.conf" debian/usr/local/share/x265_convert_script/preferences.conf
 cp "$SRC_PATH/logging.sh" debian/usr/local/share/x265_convert_script/logging.sh
 cp "$SRC_PATH/file_utils.sh" debian/usr/local/share/x265_convert_script/file_utils.sh
