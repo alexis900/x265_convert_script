@@ -20,7 +20,7 @@ fi
 # Create the necessary directory structure
 mkdir -p debian/DEBIAN
 mkdir -p debian/usr/local/bin
-mkdir -p debian/usr/local/share/x265_convert_script
+mkdir -p debian/usr/local/share/x265_convert_script/{src,config}
 mkdir -p debian/usr/share/metainfo
 mkdir -p debian/usr/share/man/man1
 
@@ -64,11 +64,11 @@ chmod +x debian/DEBIAN/postinst
 # Copy the necessary files to the debian directory
 cp "$SHARE_PATH/convert_x265" debian/usr/local/bin/convert_x265
 cp "$SHARE_PATH/check_x265" debian/usr/local/bin/check_x265
-cp "$CONFIG_PATH/preferences.conf" debian/usr/local/share/x265_convert_script/preferences.conf
-cp "$SRC_PATH/logging.sh" debian/usr/local/share/x265_convert_script/logging.sh
-cp "$SRC_PATH/file_utils.sh" debian/usr/local/share/x265_convert_script/file_utils.sh
-cp "$SRC_PATH/check_update.sh" debian/usr/local/share/x265_convert_script/check_update.sh
-cp "$SRC_PATH/backup.sh" debian/usr/local/share/x265_convert_script/backup.sh
+cp "$CONFIG_PATH/preferences.conf" debian/usr/local/share/x265_convert_script/config/preferences.conf
+cp "$SRC_PATH/logging.sh" debian/usr/local/share/x265_convert_script/src/logging.sh
+cp "$SRC_PATH/file_utils.sh" debian/usr/local/share/x265_convert_script/src/file_utils.sh
+cp "$SRC_PATH/check_update.sh" debian/usr/local/share/x265_convert_script/src/check_update.sh
+cp "$SRC_PATH/backup.sh" debian/usr/local/share/x265_convert_script/src/backup.sh
 cp "$SHARE_PATH/version" debian/usr/local/share/x265_convert_script/version
 cp "$PACKAGING_PATH/appdata.xml" debian/usr/share/metainfo/appdata.xml
 
