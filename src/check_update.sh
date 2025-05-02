@@ -33,4 +33,14 @@ check_update_version(){
     echo "You are using the latest version: $current_version"
 }
 
-export -f check_update_version
+check_version() {
+    if [[ -f "$SRC_PATH/check_update.sh" ]]; then
+        source "$SRC_PATH/check_update.sh"
+        check_update_version
+    else
+        echo "Error: check_update.sh not found in $SRC_PATH. Exiting..."
+        exit 1
+    fi
+}
+
+export -f check_version

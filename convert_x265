@@ -3,40 +3,55 @@
 # This script converts video files to H265 (HEVC) format or changes their container.
 SHARE_PATH="/usr/local/share/x265_convert_script"
 #SHARE_PATH="$(pwd)"
+SRC_PATH="$SHARE_PATH/src"
 # Load environment variables and utility functions
-if [[ -f "$SHARE_PATH/preferences.conf" ]]; then
-    source "$SHARE_PATH/preferences.conf"
+if [[ -f "$SHARE_PATH/config/preferences.conf" ]]; then
+    source "$SHARE_PATH/config/preferences.conf"
 else
     echo "Error: preferences.conf not found in the current directory. Exiting..."
     exit 1
 fi
 
-if [[ -f "$SHARE_PATH/logging.sh" ]]; then
-    source "$SHARE_PATH/logging.sh"
+if [[ -f "$SRC_PATH/logging.sh" ]]; then
+    source "$SRC_PATH/logging.sh"
 else
-    echo "Error: logging.sh not found in $SHARE_PATH. Exiting..."
+    echo "Error: logging.sh not found in $SRC_PATH. Exiting..."
     exit 1
 fi
 
-if [[ -f "$SHARE_PATH/file_utils.sh" ]]; then
-    source "$SHARE_PATH/file_utils.sh"
+if [[ -f "$SRC_PATH/file_utils.sh" ]]; then
+    source "$SRC_PATH/file_utils.sh"
 else
-    echo "Error: file_utils.sh not found in $SHARE_PATH. Exiting..."
+    echo "Error: file_utils.sh not found in $SRC_PATH. Exiting..."
     exit 1
 fi
 
-if [[ -f "$SHARE_PATH/backup.sh" ]]; then
-    source "$SHARE_PATH/backup.sh"
+if [[ -f "$SRC_PATH/backup.sh" ]]; then
+    source "$SRC_PATH/backup.sh"
 else
-    echo "Error: backup.sh not found in $SHARE_PATH. Exiting..."
+    echo "Error: backup.sh not found in $SRC_PATH. Exiting..."
     exit 1
 fi
+
+if [[ -f "$SRC_PATH/check_update.sh" ]]; then
+    source "$SRC_PATH/check_update.sh"
+else
+    echo "Error: check_update.sh not found in $SRC_PATH. Exiting..."
+    exit 1
+fi
+
 
 # Verify if the required files exist
-required_files=("logging.sh" "file_utils.sh" "preferences.conf" "backup.sh" "check_update.sh")
-for file in "${required_files[@]}"; do
-    if [[ ! -f "$SHARE_PATH/$file" ]]; then
-        echo "Error: Required file $file does not exist in $SHARE_PATH. Exiting..."
+declare -A required_files=(
+    ["preferences.conf"]="$SHARE_PATH/config"
+    ["logging.sh"]="$SRC_PATH"
+    ["file_utils.sh"]="$SRC_PATH"
+    ["backup.sh"]="$SRC_PATH"
+    ["check_update.sh"]="$SRC_PATH"
+)
+for file in "${!required_files[@]}"; do
+    if [[ ! -f "${required_files[$file]}/$file" ]]; then
+        echo "Error: Required file $file does not exist in ${required_files[$file]}. Exiting..."
         exit 1
     fi
 done
@@ -203,7 +218,7 @@ trap handle_signal SIGINT SIGTERM
 function find_files () {
 
     while true; do
-        log "INFO" "Searching for files in $actual_dir..." "${LOG_FILE}"
+        log "INFO" "Searching for files in ${ACTUAL_DIR}..." "${LOG_FILE}"
 
         files=$(find_pending_files)
 
@@ -228,13 +243,12 @@ while [[ $# -gt 0 ]]; do
             display_help
             ;;
         --version|-v)
-            source "$SHARE_PATH/check_update.sh"
-            check_update_version
+            check_version
             exit 0
             ;;
         --dir|-d)
             if [[ -n "$2" ]]; then
-                actual_dir="$2"
+                $ACTUAL_DIR="$2"
                 shift
             else
                 echo "Error: --dir requires a directory path as an argument."
@@ -250,8 +264,8 @@ while [[ $# -gt 0 ]]; do
                     exit 1
                 fi
             else
-            echo "Error: --file requires a file path as an argument."
-            exit 1
+                echo "Error: --file requires a file path as an argument."
+                exit 1
             fi
             ;;
         --codec|-c)
@@ -281,12 +295,13 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Ensure a directory is specified if --dir or --file is not used
-if [[ -z "$actual_dir" ]]; then
+if [[ -z "${ACTUAL_DIR}" ]]; then
     echo "Error: No directory specified. Use --dir to define it."
     exit 1
+else
+    find_files
 fi
 
-find_files
 
 # Export LOG_LEVEL for use in logging.sh
 export LOG_LEVEL

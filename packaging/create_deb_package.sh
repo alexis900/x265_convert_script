@@ -3,12 +3,12 @@
 # This script automates the generation of a .deb package for the x265 convert script.
 
 SHARE_PATH="$(pwd)"
-source $SHARE_PATH/version
+source $SHARE_PATH/../version
 
 # Create the necessary directory structure
 mkdir -p debian/DEBIAN
 mkdir -p debian/usr/local/bin
-mkdir -p debian/usr/local/share/x265_convert_script
+mkdir -p debian/usr/local/share/x265_convert_script/{src,config}
 mkdir -p debian/usr/share/metainfo
 mkdir -p debian/usr/share/man/man1
 
@@ -50,14 +50,14 @@ EOF
 chmod +x debian/DEBIAN/postinst
 
 # Copy the scripts to the appropriate directories
-cp convert_x265 debian/usr/local/bin/convert_x265
-cp check_x265 debian/usr/local/bin/check_x265
-cp preferences.conf debian/usr/local/share/x265_convert_script/preferences.conf
-cp logging.sh debian/usr/local/share/x265_convert_script/logging.sh
-cp file_utils.sh debian/usr/local/share/x265_convert_script/file_utils.sh
-cp check_update.sh debian/usr/local/share/x265_convert_script/check_update.sh
-cp backup.sh debian/usr/local/share/x265_convert_script/backup.sh
-cp version debian/usr/local/share/x265_convert_script/version
+cp ../convert_x265 debian/usr/local/bin/convert_x265
+cp ../check_x265 debian/usr/local/bin/check_x265
+cp ../config/preferences.conf debian/usr/local/share/x265_convert_script/config/preferences.conf
+cp ../src/logging.sh debian/usr/local/share/x265_convert_script/src/logging.sh
+cp ../src/file_utils.sh debian/usr/local/share/x265_convert_script/src/file_utils.sh
+cp ../src/check_update.sh debian/usr/local/share/x265_convert_script/src/check_update.sh
+cp ../src/backup.sh debian/usr/local/share/x265_convert_script/src/backup.sh
+cp ../version debian/usr/local/share/x265_convert_script/version
 
 # Copy the appdata.xml file to the appropriate directory for GNOME Software Store
 cp appdata.xml debian/usr/share/metainfo/appdata.xml
@@ -74,6 +74,6 @@ dpkg-deb --build debian
 mv debian.deb ${PACKAGE_NAME}_${VERSION}-${CHANNEL}_${ARCHITECTURE}.deb
 
 # Clean up
-rm -rf debian
+#rm -rf debian
 
 echo "Package ${PACKAGE_NAME}_${VERSION}-${CHANNEL}_${ARCHITECTURE}.deb created successfully."
