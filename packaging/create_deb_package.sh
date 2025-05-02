@@ -2,13 +2,24 @@
 
 # This script automates the generation of a .deb package for the x265 convert script.
 
-SHARE_PATH="$(pwd)"
-source $SHARE_PATH/../version
+# Correct the paths to ensure the script works in the current directory
+SHARE_PATH=".."
+SRC_PATH="$SHARE_PATH/src"
+CONFIG_PATH="$SHARE_PATH/config"
+PACKAGING_PATH="$SHARE_PATH/packaging"
+
+# Correct the path to the version file
+if [[ -f "$SHARE_PATH/version" ]]; then
+    source "$SHARE_PATH/version"
+else
+    echo "Error: version file not found in $SHARE_PATH/version. Exiting..."
+    exit 1
+fi
 
 # Create the necessary directory structure
 mkdir -p debian/DEBIAN
 mkdir -p debian/usr/local/bin
-mkdir -p debian/usr/local/share/x265_convert_script/{src,config}
+mkdir -p debian/usr/local/share/x265_convert_script
 mkdir -p debian/usr/share/metainfo
 mkdir -p debian/usr/share/man/man1
 
@@ -49,23 +60,25 @@ EOF
 
 chmod +x debian/DEBIAN/postinst
 
-# Copy the scripts to the appropriate directories
-cp ../convert_x265 debian/usr/local/bin/convert_x265
-cp ../check_x265 debian/usr/local/bin/check_x265
-cp ../config/preferences.conf debian/usr/local/share/x265_convert_script/config/preferences.conf
-cp ../src/logging.sh debian/usr/local/share/x265_convert_script/src/logging.sh
-cp ../src/file_utils.sh debian/usr/local/share/x265_convert_script/src/file_utils.sh
-cp ../src/check_update.sh debian/usr/local/share/x265_convert_script/src/check_update.sh
-cp ../src/backup.sh debian/usr/local/share/x265_convert_script/src/backup.sh
-cp ../version debian/usr/local/share/x265_convert_script/version
+# Copy the necessary files to the debian directory
+cp "$SHARE_PATH/bin/convert_x265" debian/usr/local/bin/convert_x265
+cp "$SHARE_PATH/bin/check_x265" debian/usr/local/bin/check_x265
+cp "$CONFIG_PATH/preferences.conf" debian/usr/local/share/x265_convert_script/preferences.conf
+cp "$SRC_PATH/logging.sh" debian/usr/local/share/x265_convert_script/logging.sh
+cp "$SRC_PATH/file_utils.sh" debian/usr/local/share/x265_convert_script/file_utils.sh
+cp "$SRC_PATH/check_update.sh" debian/usr/local/share/x265_convert_script/check_update.sh
+cp "$SRC_PATH/backup.sh" debian/usr/local/share/x265_convert_script/backup.sh
+cp "$SHARE_PATH/version" debian/usr/local/share/x265_convert_script/version
+cp "$PACKAGING_PATH/appdata.xml" debian/usr/share/metainfo/appdata.xml
 
-# Copy the appdata.xml file to the appropriate directory for GNOME Software Store
-cp appdata.xml debian/usr/share/metainfo/appdata.xml
-
-# Copy the man page to the appropriate directory
-echo "Installing man page for convert_x265..."
-cp convert_x265.1 debian/usr/share/man/man1/convert_x265.1
-gzip -f debian/usr/share/man/man1/convert_x265.1
+# Install the man page
+if [[ -f "$PACKAGING_PATH/convert_x265.1" ]]; then
+    cp "$PACKAGING_PATH/convert_x265.1" debian/usr/share/man/man1/convert_x265.1
+    gzip -f debian/usr/share/man/man1/convert_x265.1
+else
+    echo "Error: convert_x265.1 man page not found in $PACKAGING_PATH. Exiting..."
+    exit 1
+fi
 
 # Build the package
 dpkg-deb --build debian
@@ -74,6 +87,6 @@ dpkg-deb --build debian
 mv debian.deb ${PACKAGE_NAME}_${VERSION}-${CHANNEL}_${ARCHITECTURE}.deb
 
 # Clean up
-#rm -rf debian
+rm -rf debian
 
 echo "Package ${PACKAGE_NAME}_${VERSION}-${CHANNEL}_${ARCHITECTURE}.deb created successfully."
