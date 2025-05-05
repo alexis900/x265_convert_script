@@ -52,6 +52,12 @@ process_file() {
     convert_to_h265_or_change_container "$file" "$new_path" "$codec"
 }
 
+human_size() {
+    numfmt --to=iec "$1"
+}
+
 export -f find_pending_files
 export -f check_xattr_larger
 export -f mark_xattr_larger
+export -f process_file
+export -f human_size

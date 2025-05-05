@@ -14,6 +14,7 @@ detect_codec() {
 verify_quality() {
     local input_file="$1"
     local output_file="$2"
+    local tolerance=0.5  # segundos de tolerancia
 
     log "INFO" "Verifying quality of converted file: $output_file" "${LOG_FILE}"
 
@@ -21,10 +22,22 @@ verify_quality() {
     local original_duration=$(ffprobe -v $FFMPEG_LOG_LEVEL -show_entries format=duration -of csv=p=0 "$input_file")
     local converted_duration=$(ffprobe -v $FFMPEG_LOG_LEVEL -show_entries format=duration -of csv=p=0 "$output_file")
 
-    if [[ $(echo "$original_duration == $converted_duration" | bc -l) -eq 1 ]]; then
-        log "INFO" "The duration of the converted file matches the original." "${LOG_FILE}"
+    if [[ -z "$original_duration" || -z "$converted_duration" ]]; then
+        log "ERROR" "Could not get duration for quality check." "${LOG_FILE}"
+        return 1
+    fi
+
+    # Calcula la diferencia absoluta
+    local diff
+    diff=$(echo "$original_duration - $converted_duration" | bc -l)
+    diff=$(echo "${diff#-}")  # valor absoluto
+
+    if (( $(echo "$diff < $tolerance" | bc -l) )); then
+        log "INFO" "Duration matches within tolerance ($tolerance s)." "${LOG_FILE}"
+        return 0
     else
-        log "WARNING" "The duration of the converted file does not match the original." "${LOG_FILE}"
+        log "WARNING" "Duration differs by more than $tolerance s." "${LOG_FILE}"
+        return 1
     fi
 }
 
@@ -34,18 +47,40 @@ verify_quality() {
 #   $2 - Output file
 #   $3 - Video codec (e.g., libx265 or libx264)
 #   $4 - Subtitle codec (optional, pass empty if no subtitles)
+#   $5 - Audio codec (e.g., aac, ac3, etc.)
 video_convert() {
     local input_file="$1"
     local output_file="$2"
     local video_codec="$3"
     local subtitle_codec="$4"
+    local audio_codec="$5"
+
+    log "INFO" "Preparing to convert video: $input_file" "${LOG_FILE}"
+
+    # Check if the input file exists
+    if [[ ! -f "$input_file" ]]; then
+        log "ERROR" "Input file does not exist: $input_file" "${LOG_FILE}"
+        return 1
+    fi
+
+    # Check if the video codec is provided
+    if [[ -z "$video_codec" ]]; then
+        log "ERROR" "No video codec specified for conversion." "${LOG_FILE}"
+        return 1
+    fi
+
+    # Check if the audio codec is provided
+    if [[ -z "$audio_codec" ]]; then
+        log "ERROR" "No audio codec specified for conversion." "${LOG_FILE}"
+        return 1
+    fi
 
     if [[ -n "$subtitle_codec" ]]; then
         log "INFO" "Starting conversion with subtitles for: $input_file" "${LOG_FILE}"
-        ffmpeg -i "$input_file" -map 0 -c:v "$video_codec" -preset "$FFMPEG_PRESET" -crf "$FFMPEG_CRF" -c:a "$FFMPEG_AUDIO_CODEC" -c:s "$subtitle_codec" "$output_file" &>> "$ffmpeg_log_file"
+        ffmpeg -i "$input_file" -map 0 -c:v "$video_codec" -preset "$FFMPEG_PRESET" -crf "$FFMPEG_CRF" -c:a "$audio_codec" -c:s "$subtitle_codec" "$output_file" &>> "$ffmpeg_log_file"
     else
         log "INFO" "Starting conversion without subtitles for: $input_file" "${LOG_FILE}"
-        ffmpeg -i "$input_file" -map 0 -c:v "$video_codec" -preset "$FFMPEG_PRESET" -crf "$FFMPEG_CRF" -c:a "$FFMPEG_AUDIO_CODEC" -sn "$output_file" &>> "$ffmpeg_log_file"
+        ffmpeg -i "$input_file" -map 0 -c:v "$video_codec" -preset "$FFMPEG_PRESET" -crf "$FFMPEG_CRF" -c:a "$audio_codec" -sn "$output_file" &>> "$ffmpeg_log_file"
     fi
 
     if [[ $? -eq 0 ]]; then
