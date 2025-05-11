@@ -9,9 +9,9 @@ find_pending_files() {
         -not -name "*.h265.mkv" -not -name "*.x265.mkv" | while read -r f; do
             codec=$(detect_codec "$f")
             xattr_output=$(check_xattr_larger "$f")
-            if [[ "$codec" == "hevc" ]] && [[ "${f##*.}" != "mkv" ]]; then
+            if [[ "$codec" == "hevc" ]] && [[ "${f##*.}" != "${OUTPUT_EXTENSION}" ]]; then
                 echo "$f"
-            elif [[ "$codec" == "h264" ]] && [[ "${f##*.}" != "mkv" ]]; then
+            elif [[ "$codec" == "h264" ]] && [[ "${f##*.}" != "${OUTPUT_EXTENSION}" ]]; then
                 echo "$f"
             elif [[ "$codec" != "hevc" && "$xattr_output" != "true" ]]; then
                 echo "$f"
@@ -20,10 +20,27 @@ find_pending_files() {
 }
 
 # Function to check if the file has the 'larger' attribute
+check_xattr() {
+    local file="$1"
+    local attr="$2"
+    if command -v xattr &>/dev/null; then
+        xattr -p "$attr" "$file" 2>/dev/null
+    else
+        log "ERROR" "xattr is not available on this system" "${LOG_FILE}"
+        return 1
+    fi
+}
+
 check_xattr_larger() {
     local file="$1"
+    [[ "$(check_xattr "$file" "user.larger")" == "true" ]]
+}
+
+mark_xattr() {
+    local file="$1"
+    local attr="$2"
     if command -v xattr &>/dev/null; then
-        xattr -p user.larger "$file" 2>/dev/null
+        xattr -w "$attr" true "$file"
     else
         log "ERROR" "xattr is not available on this system" "${LOG_FILE}"
         return 1
@@ -33,11 +50,17 @@ check_xattr_larger() {
 # Function to mark the file with the 'larger' attribute
 mark_xattr_larger() {
     local file="$1"
-    if command -v xattr &>/dev/null; then
-        xattr -w user.larger true "$file"
-    else
-        log "ERROR" "xattr is not available on this system" "${LOG_FILE}"
-    fi
+    mark_xattr "$file" "user.larger"
+}
+
+get_output_path() {
+    local input_file="$1"
+    local codec_suffix="$2"     # Example: x265, x264, etc.
+    local filename_without_extension="$(basename "$input_file" | sed 's/\.[^.]*$//')"
+    local dir_name="$(dirname "$input_file")"
+    local base_name="$(basename "$input_file" | sed 's/\.[^.]*$//')"
+    local codec_suffix="${codec_suffix:x265,x264}"
+    return "${dir_name}/${base_name}.${codec_suffix}.${OUTPUT_EXTENSION}"
 }
 
 process_file() {
@@ -47,7 +70,8 @@ process_file() {
         log "ERROR" "Error: Could not detect codec of file $file" "${LOG_FILE}"
         return 1
     fi
-    local new_path="$(dirname "$file")/$(basename "$file" | cut -d. -f1).x265.mkv"
+    local filename_without_extension=$(basename "$file" | sed 's/\.[^.]*$//')
+    local new_path=$(get_output_path "$file" "x265")
     log "DEBUG" "Detected codec for $file: $codec" "${LOG_FILE}"
     convert_to_h265_or_change_container "$file" "$new_path" "$codec"
 }

@@ -21,7 +21,9 @@ delete_backup() {
 # Function to clean up temporary files
 cleanup_temp_files() {
     if ls /tmp/tmp_h265_part_*.mkv 1> /dev/null 2>&1; then
+        log "INFO" "Cleaning up temporary files..." "${LOG_FILE}"
         rm -f /tmp/tmp_h265_part_*.mkv
-        log "INFO" "Temporary files deleted" "${LOG_FILE}"
+    else
+        log "INFO" "No temporary files to clean up." "${LOG_FILE}"
     fi
 }

@@ -13,6 +13,7 @@
 #   --log-level <level>       Set log level (DEBUG, INFO, WARNING, ERROR).
 #   --estimate-size <file>    Estimate the size after H265 conversion for a file.
 #   --check-xattr <file>      Check if the xattr user.larger is present on a file.
+#   --cleanup-temp-files      Clean up temporary files created during processing.
 #
 # Examples:
 #   ./convert_x265 --dir /path/to/videos --log-level DEBUG
@@ -58,13 +59,6 @@ else
     exit 1
 fi
 
-if [[ -f "$SRC_PATH/check_update.sh" ]]; then
-    source "$SRC_PATH/check_update.sh"
-else
-    echo "Error: check_update.sh not found in $SRC_PATH. Exiting..."
-    exit 1
-fi
-
 if [[ -f "$SRC_PATH/media_utils.sh" ]]; then
     source "$SRC_PATH/media_utils.sh"
 else
@@ -102,6 +96,7 @@ display_help() {
     echo "  --log-level <level>       Set log level (DEBUG, INFO, WARNING, ERROR)"
     echo "  --estimate-size <file>    Estimate the size after H265 conversion for a file"
     echo "  --check-xattr <file>      Check if the xattr user.larger is present on a file"
+    echo "  --cleanup-temp-files      Clean up temporary files created during processing"
     echo
     echo "Examples:"
     echo "  $0 --dir /path/to/videos --log-level DEBUG"
@@ -130,10 +125,10 @@ estimate_video_size() {
 
     # Convert the file in 10 parts of 10 seconds to estimate the size
     for i in $(seq 0 $((total_parts - 1))); do
-        local tmp_output="/tmp/tmp_h265_part_$i.mkv"
+        local tmp_output="/tmp/tmp_h265_part_$i.${OUTPUT_EXTENSION}"
         log "DEBUG" "Processing part $i of file $input_file" "${LOG_FILE}"
 
-        ffmpeg -i "$input_file" -ss $((i * part_duration)) -t "$part_duration" -c:v libx265 -preset $FFMPEG_PRESET -crf $FFMPEG_CRF -c:a $FFMPEG_AUDIO_CODEC -sn -f matroska "$tmp_output" &>> "${FFMPEG_LOG_FILE}"
+        ffmpeg -i "$input_file" -ss $((i * part_duration)) -t "$part_duration" -c:v $FFMPEG_VIDEO_CODEC -preset $FFMPEG_PRESET -crf $FFMPEG_CRF -c:a $FFMPEG_AUDIO_CODEC -sn -f matroska "$tmp_output" &>> "${FFMPEG_LOG_FILE}"
 
         if [[ $? -ne 0 ]]; then
             log "ERROR" "Error converting part $i of file $input_file. FFmpeg output: $(cat "${FFMPEG_LOG_FILE}")" "${LOG_FILE}"
@@ -195,7 +190,7 @@ convert_to_h265_or_change_container() {
     if (( estimated_size > original_size )) && [[ "$codec" != "h264" ]]; then
         log "INFO" "The estimated size in H265 is larger than the original and the codec is not H264. Converting to H264." "${LOG_FILE}"
         FFMPEG_VIDEO_CODEC="libx264"
-        output_file="$(dirname "$input_file")/$(basename "$input_file" | cut -d. -f1).x264.mkv"
+        output_file="$(dirname "$input_file")/$(basename "$input_file" | cut -d. -f1).x264.${OUTPUT_EXTENSION}"
     else
         FFMPEG_VIDEO_CODEC="libx265"
     fi
@@ -260,8 +255,15 @@ while [[ $# -gt 0 ]]; do
             display_help
             ;;
         --version|-v)
-            check_version
-            exit 0
+            check_update="$SRC_PATH/check_update.sh"
+            if [[ -f "$check_update" ]]; then
+                source "$check_update"
+                check_update_version
+                exit 0
+            else
+                echo "Error: $check_update not found. Exiting..."
+                exit 1
+            fi
             ;;
         --dir|-d)
             if [[ -n "$2" ]]; then
@@ -320,6 +322,11 @@ while [[ $# -gt 0 ]]; do
                 echo "Error: --check-xattr requires a file path as an argument."
                 exit 1
             fi
+            ;;
+        # This option cleans up temporary files created during processing and exits immediately.
+        --cleanup-temp-files)
+            cleanup_temp_files
+            exit 0
             ;;
         *)
             echo "Unknown option: $1"
