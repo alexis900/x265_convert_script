@@ -1,6 +1,6 @@
 # x265 Convert Script
 
-This script automates the conversion of video files to H265 (HEVC) format or changes their container to MKV if they are already in H265 but not in MKV. Additionally, if the estimated size after converting to H265 is larger than the original and the original codec is not H264, the file will be converted to H264 with the `.x264.mkv` extension.
+This script automates the conversion of video files to H265 (HEVC) format or changes their container to your preferred extension (default: MKV, but configurable, e.g. MP4). If the estimated size after converting to H265 is larger than the original and the original codec is not H264, the file will be converted to H264 with the `.x264.<ext>` extension, where `<ext>` is the chosen output extension.
 
 ---
 
@@ -15,20 +15,20 @@ This script automates the conversion of video files to H265 (HEVC) format or cha
 
 1. Convert files in the default directory:
    ```bash
-   ./convert_x265.sh
+   ./convert_x265
    ```
 2. Specify a custom directory:
    ```bash
-   ./convert_x265.sh --dir /path/to/my/directory
+   ./convert_x265 --dir /path/to/my/directory
    ```
 3. Process a single file:
    ```bash
-   ./convert_x265.sh --file /path/to/my/video.mp4
+   ./convert_x265 --file /path/to/my/video.mp4
    ```
 4. Show version or help:
    ```bash
-   ./convert_x265.sh --version
-   ./convert_x265.sh --help
+   ./convert_x265 --version
+   ./convert_x265 --help
    ```
 
 ---
@@ -39,12 +39,27 @@ This script automates the conversion of video files to H265 (HEVC) format or cha
 - `--version`, `-v`: Show script version.
 - `--dir PATH`, `-d PATH`: Directory to process (overrides `ACTUAL_DIR` in `preferences.conf`).
 - `--file PATH`, `-f PATH`: Process a single file.
-- `--codec CODEC`, `-c CODEC`: Detect the codec of a file.
+- `--codec CODEC`, `-c <file>`: Detect the codec of a file.
 - `--log-level LEVEL`: Log level (DEBUG, INFO, WARNING, ERROR).
-- `--estimate-size`: Estimate the size after H265 conversion for a file.
-- `--check-xattr`: Check if the xattr user.larger is present on a file.
+- `--estimate-size <file>`: Estimate the size after H265 conversion for a file.
+- `--check-xattr <file>`: Check if the xattr user.larger is present on a file.
+- `--cleanup-temp-files`: Clean up temporary files created during processing.
 
 If no directory is specified, the one defined in `preferences.conf` will be used.
+
+---
+
+## Customizing Output Extension
+
+You can set the output file extension (e.g., `mkv`, `mp4`) by editing the `OUTPUT_EXTENSION` variable in your `config/preferences.conf` file:
+
+```properties
+OUTPUT_EXTENSION="mp4"
+```
+
+All converted files will use this extension.  
+**Example:**  
+If you set `OUTPUT_EXTENSION="mp4"`, output files will be named like `video.x265.mp4` or `video.x264.mp4`.
 
 ---
 
@@ -52,8 +67,9 @@ If no directory is specified, the one defined in `preferences.conf` will be used
 
 - `ACTUAL_DIR`: Directory containing the videos.
 - `LOG_FILE`: Main log file path.
-- `FFMPG_LOG_FILE`: ffmpeg output log.
+- `FFMPEG_LOG_FILE`: ffmpeg output log.
 - `REMAINING_LOG`: Log of pending files.
+- `OUTPUT_EXTENSION`: Output file extension (default: `mkv`, can be changed to `mp4`, etc.).
 - `CHECK_LATESTS_VERSION`: URL to check for updates.
 - `SHARE_PATH`: Shared resources.
 - `FFMPEG_PRESET`: ffmpeg preset.
@@ -64,11 +80,13 @@ If no directory is specified, the one defined in `preferences.conf` will be used
 - `FFMPEG_LOG_LEVEL`: ffmpeg log level (default: `error`).
 - `BACKUP_DIR`: Backup folder.
 - `LOG_LEVEL`: Script log level (default: `DEBUG`).
+- `SLEEP_TIME`: Seconds to wait between directory scans.
 
 ---
 
 ## Recent Changes and Improvements
 
+- **Custom Output Extension**: Set the output file extension via `OUTPUT_EXTENSION` in `preferences.conf`.
 - **H265 Size Estimation**: Decides between H265 or H264 based on estimated size.
 - **Quality Verification**: Compares duration to ensure integrity.
 - **Subtitle Management**: Automatically includes valid subtitles.

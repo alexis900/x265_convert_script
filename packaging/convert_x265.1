@@ -23,11 +23,17 @@ Specify the directory to process. Overrides the default directory specified in p
 .B --file PATH, -f PATH
 Specify a single file to process.
 .TP
-.B --codec CODEC, -c CODEC
-Specify the codec to use for conversion (e.g., libx265, libx264). Overrides the default codec in preferences.conf.
+.B --codec PATH, -c PATH
+Detect and display the codec used in the specified file.
 .TP
 .B --log-level LEVEL
 Set the log level for the script. Valid levels are DEBUG, INFO, WARNING, and ERROR.
+.TP
+.B --check-xattr PATH
+Check for the presence of extended file attributes (xattr) on input files before processing. This option ensures that any relevant metadata stored as extended attributes is considered during the conversion process.
+.TP
+.B --cleanup-temp-files
+This option cleans up temporary files created during processing and exits immediately.
 
 .SH EXAMPLES
 .TP
