@@ -81,7 +81,7 @@ for file in "${SRC_FILES[@]}"; do
 done
 
 # Copy source scripts
-PROFILE_PATH=("quality.conf" "balanced.conf" "fast.conf")
+PROFILE_PATH=("quality.conf" "balanced.conf" "fast.conf" "base_quality.conf")
 for file in "${PROFILE_PATH[@]}"; do
     cp "$SRC_PATH/profiles/$file" "debian/usr/local/share/x265_convert_script/src/profiles/$file"
 done
