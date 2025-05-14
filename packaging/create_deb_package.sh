@@ -6,6 +6,7 @@
 SHARE_PATH="$(dirname $(dirname $(realpath $0)))"
 echo SHARE_PATH: $SHARE_PATH
 SRC_PATH="$SHARE_PATH/src"
+PROFILE_PATH="$SRC_PATH/profiles"
 CONFIG_PATH="$SHARE_PATH/config"
 PACKAGING_PATH="$SHARE_PATH/packaging"
 
@@ -20,7 +21,8 @@ fi
 # Create the necessary directory structure
 mkdir -p debian/DEBIAN
 mkdir -p debian/usr/local/bin
-mkdir -p debian/usr/local/share/x265_convert_script/{src,config}
+mkdir -p debian/usr/local/share/x265_convert_script/config
+mkdir -p debian/usr/local/share/x265_convert_script/src/profiles
 mkdir -p debian/usr/share/metainfo
 mkdir -p debian/usr/share/man/man1
 
@@ -76,6 +78,12 @@ cp "$CONFIG_PATH/preferences.conf" debian/usr/local/share/x265_convert_script/co
 SRC_FILES=("logging.sh" "file_utils.sh" "check_update.sh" "backup.sh" "media_utils.sh")
 for file in "${SRC_FILES[@]}"; do
     cp "$SRC_PATH/$file" "debian/usr/local/share/x265_convert_script/src/$file"
+done
+
+# Copy source scripts
+PROFILE_PATH=("quality.conf" "balanced.conf" "fast.conf")
+for file in "${PROFILE_PATH[@]}"; do
+    cp "$SRC_PATH/profiles/$file" "debian/usr/local/share/x265_convert_script/src/profiles/$file"
 done
 
 # Copy app metadata
