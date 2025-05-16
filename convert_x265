@@ -30,7 +30,7 @@
 
 
 # Detect if running from a deb package install or from source directory
-SCRIPT_DIR = $(dirname "${BASH_SOURCE[0]}")
+SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
 if [[ -d "/usr/local/share/x265_convert_script" && $SCRIPT_DIR == "/usr/local/bin" ]]; then
     SHARE_PATH="/usr/local/share/x265_convert_script"
 else
@@ -136,7 +136,7 @@ estimate_video_size() {
         local tmp_output="/tmp/tmp_h265_part_$i.${OUTPUT_EXTENSION}"
         log "DEBUG" "Processing part $i of file $input_file" "${LOG_FILE}"
 
-        ffmpeg -i "$input_file" -ss $((i * part_duration)) -t "$part_duration" -c:v $FFMPEG_VIDEO_CODEC -preset $FFMPEG_PRESET -crf $FFMPEG_CRF -c:a $FFMPEG_AUDIO_CODEC -sn -f matroska "$tmp_output" &>> "${FFMPEG_LOG_FILE}"
+        ffmpeg -i "$input_file" -ss $((i * part_duration)) -t "$part_duration" -c:v $VIDEO_CODEC -preset $PRESET -crf $CRF -c:a $AUDIO_CODEC -sn -f matroska "$tmp_output" &>> "${FFMPEG_LOG_FILE}"
 
         if [[ $? -ne 0 ]]; then
             log "ERROR" "Error converting part $i of file $input_file. FFmpeg output: $(cat "${FFMPEG_LOG_FILE}")" "${LOG_FILE}"
@@ -197,16 +197,16 @@ convert_to_h265_or_change_container() {
 
     if (( estimated_size > original_size )) && [[ "$codec" != "h264" ]]; then
         log "INFO" "The estimated size in H265 is larger than the original and the codec is not H264. Converting to H264." "${LOG_FILE}"
-        FFMPEG_VIDEO_CODEC="libx264"
+        VIDEO_CODEC="libx264"
         output_file="$(dirname "$input_file")/$(basename "$input_file" | cut -d. -f1).x264.${OUTPUT_EXTENSION}"
     else
-        FFMPEG_VIDEO_CODEC="libx265"
+        VIDEO_CODEC="libx265"
     fi
 
     if has_valid_subtitles "$input_file"; then
-        video_convert "$input_file" "$output_file" "$FFMPEG_VIDEO_CODEC" "$FFMPEG_SUBTITLE_CODEC" "$FFMPEG_AUDIO_CODEC"
+        video_convert "$input_file" "$output_file" "$VIDEO_CODEC" "$SUBTITLE_CODEC" "$AUDIO_CODEC"
     else
-        video_convert "$input_file" "$output_file" "$FFMPEG_VIDEO_CODEC" "" "$FFMPEG_AUDIO_CODEC"
+        video_convert "$input_file" "$output_file" "$VIDEO_CODEC" "" "$AUDIO_CODEC"
     fi
 
     if [[ $? -eq 0 ]]; then
@@ -335,6 +335,25 @@ while [[ $# -gt 0 ]]; do
         --cleanup-temp-files)
             cleanup_temp_files
             exit 0
+            ;;
+        --list-profiles)
+            if [[ -d "$SRC_PATH/profiles" ]]; then
+                echo "Available profiles:"
+                ls "$SRC_PATH/profiles"
+            else
+                echo "Error: Profiles directory not found."
+                exit 1
+            fi
+            exit 0
+            ;;
+        --profile)
+            if [[ -n "$2" ]]; then
+                load_profile "$2"
+                exit 0
+            else
+                echo "Error: --profile requires a profile file as an argument."
+                exit 1
+            fi
             ;;
         *)
             echo "Unknown option: $1"

@@ -77,10 +77,10 @@ video_convert() {
 
     if [[ -n "$subtitle_codec" ]]; then
         log "INFO" "Starting conversion with subtitles for: $input_file" "${LOG_FILE}"
-        ffmpeg -i "$input_file" -map 0 -c:v "$video_codec" -preset "$FFMPEG_PRESET" -crf "$FFMPEG_CRF" -c:a "$audio_codec" -c:s "$subtitle_codec" "$output_file" &>> "$ffmpeg_log_file"
+        ffmpeg -i "$input_file" -map 0 -c:v "$video_codec" -preset "$PRESET" -crf "$CRF" -c:a "$audio_codec" -c:s "$subtitle_codec" "$output_file" &>> "$ffmpeg_log_file"
     else
         log "INFO" "Starting conversion without subtitles for: $input_file" "${LOG_FILE}"
-        ffmpeg -i "$input_file" -map 0 -c:v "$video_codec" -preset "$FFMPEG_PRESET" -crf "$FFMPEG_CRF" -c:a "$audio_codec" -sn "$output_file" &>> "$ffmpeg_log_file"
+        ffmpeg -i "$input_file" -map 0 -c:v "$video_codec" -preset "$PRESET" -crf "$CRF" -c:a "$audio_codec" -sn "$output_file" &>> "$ffmpeg_log_file"
     fi
 
     if [[ $? -eq 0 ]]; then
@@ -91,6 +91,29 @@ video_convert() {
         return 1
     fi
 }
+
+load_profile () {
+    local profile="$1"
+    local profile_file="$SRC_PATH/profiles/${profile}.conf"
+    if [[ -f $profile_file ]]; then
+        source "$profile_file"
+    else
+        log "ERROR" "Profile file not found: $profile_file" "${LOG_FILE}"
+        return 1
+    fi
+
+    echo "Loaded profile: $profile_file"
+    echo "PRESET: $PRESET"
+    echo "CRF: $CRF"
+    echo "VIDEO_CODEC: $VIDEO_CODEC"
+    echo "AUDIO_CODEC: $AUDIO_CODEC"
+    echo "AUDIO_BITRATE: $AUDIO_BITRATE"
+    echo "SUBTITLE_CODEC: $SUBTITLE_CODEC"
+    echo "PIX_FMT: $PIX_FMT"
+    echo "TUNE: $TUNE"
+    echo "EXTRA_OPTS: $EXTRA_OPTS"
+}
+
 
 export -f has_valid_subtitles
 export -f detect_codec
