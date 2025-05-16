@@ -198,7 +198,7 @@ convert_to_h265_or_change_container() {
     if (( estimated_size > original_size )) && [[ "$codec" != "h264" ]]; then
         log "INFO" "The estimated size in H265 is larger than the original and the codec is not H264. Converting to H264." "${LOG_FILE}"
         VIDEO_CODEC="libx264"
-        output_file="$(dirname "$input_file")/$(basename "$input_file" | cut -d. -f1).x264.${OUTPUT_EXTENSION}"
+        output_file=$(get_output_path "$input_file" "x264")
     else
         VIDEO_CODEC="libx265"
     fi
@@ -349,7 +349,7 @@ while [[ $# -gt 0 ]]; do
         --profile)
             if [[ -n "$2" ]]; then
                 load_profile "$2"
-                exit 0
+                shift
             else
                 echo "Error: --profile requires a profile file as an argument."
                 exit 1

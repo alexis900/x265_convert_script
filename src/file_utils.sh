@@ -3,21 +3,6 @@
 # This script contains utility functions for the x265 convert script.
 
 
-find_pending_files() {
-    find "${ACTUAL_DIR}" -type f \
-        \( -name "*.mkv" -o -name "*.avi" -o -name "*.mp4" -o -name "*.mov" -o -name "*.wmv" -o -name "*.flv" -o -name "*.m4v" -o -name "*.webm" -o -name "*.3gp" \) \
-        -not -name "*.h265.mkv" -not -name "*.x265.mkv" | while read -r f; do
-            codec=$(detect_codec "$f")
-            xattr_output=$(check_xattr_larger "$f")
-            if [[ "$codec" == "hevc" ]] && [[ "${f##*.}" != "${OUTPUT_EXTENSION}" ]]; then
-                echo "$f"
-            elif [[ "$codec" == "h264" ]] && [[ "${f##*.}" != "${OUTPUT_EXTENSION}" ]]; then
-                echo "$f"
-            elif [[ "$codec" != "hevc" && "$xattr_output" != "true" ]]; then
-                echo "$f"
-            fi
-        done
-}
 
 # Function to check if the file has the 'larger' attribute
 check_xattr() {
@@ -53,15 +38,38 @@ mark_xattr_larger() {
     mark_xattr "$file" "user.larger"
 }
 
+
+find_pending_files() {
+    find "${ACTUAL_DIR}" -type f \
+        \( -name "*.mkv" -o -name "*.avi" -o -name "*.mp4" -o -name "*.mov" -o -name "*.wmv" -o -name "*.flv" -o -name "*.m4v" -o -name "*.webm" -o -name "*.3gp" \) \
+        -not -name "*.h265.mkv" -not -name "*.x265.mkv" | while read -r f; do
+            codec=$(detect_codec "$f")
+            xattr_output=$(check_xattr_larger "$f")
+            if [[ "$codec" == "hevc" ]] && [[ "${f##*.}" != "${OUTPUT_EXTENSION}" ]]; then
+                echo "$f"
+            elif [[ "$codec" == "h264" ]] && [[ "${f##*.}" != "${OUTPUT_EXTENSION}" ]]; then
+                echo "$f"
+            elif [[ "$codec" != "hevc" && "$xattr_output" != "true" ]]; then
+                echo "$f"
+            fi
+        done
+}
+
 get_output_path() {
     local input_file="$1"
-    local codec_suffix="$2"     # Example: x265, x264, etc.
-    local filename_without_extension="$(basename "$input_file" | sed 's/\.[^.]*$//')"
-    local dir_name="$(dirname "$input_file")"
+    local codec_suffix="$2"     # Ejemplo: x265, x264
     local base_name="$(basename "$input_file" | sed 's/\.[^.]*$//')"
-    local codec_suffix="${codec_suffix:x265,x264}"
-    return "${dir_name}/${base_name}.${codec_suffix}.${OUTPUT_EXTENSION}"
+    local dir_name="$(dirname "$input_file")"
+
+    # Validar que OUTPUT_EXTENSION esté definida
+    if [[ -z "$OUTPUT_EXTENSION" ]]; then
+        echo "Error: OUTPUT_EXTENSION no está definida." >&2
+        return 1
+    fi
+
+    echo "${dir_name}/${base_name}.${codec_suffix}.${OUTPUT_EXTENSION}"
 }
+
 
 process_file() {
     local file="$1"
