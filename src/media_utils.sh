@@ -97,21 +97,23 @@ load_profile () {
     local profile_file="$SRC_PATH/profiles/${profile}.conf"
     if [[ -f $profile_file ]]; then
         source "$profile_file"
+        log "DEBUG" "Loaded profile: $profile_file" "${LOG_FILE}"
     else
         log "ERROR" "Profile file not found: $profile_file" "${LOG_FILE}"
         return 1
     fi
 
-    echo "Loaded profile: $profile_file"
-    echo "PRESET: $PRESET"
-    echo "CRF: $CRF"
-    echo "VIDEO_CODEC: $VIDEO_CODEC"
-    echo "AUDIO_CODEC: $AUDIO_CODEC"
-    echo "AUDIO_BITRATE: $AUDIO_BITRATE"
-    echo "SUBTITLE_CODEC: $SUBTITLE_CODEC"
-    echo "PIX_FMT: $PIX_FMT"
-    echo "TUNE: $TUNE"
-    echo "EXTRA_OPTS: $EXTRA_OPTS"
+    if [[ ${DEBUG} == true ]]; then
+        echo "PRESET: $PRESET"
+        echo "CRF: $CRF"
+        echo "VIDEO_CODEC: $VIDEO_CODEC"
+        echo "AUDIO_CODEC: $AUDIO_CODEC"
+        echo "AUDIO_BITRATE: $AUDIO_BITRATE"
+        echo "SUBTITLE_CODEC: $SUBTITLE_CODEC"
+        echo "PIX_FMT: $PIX_FMT"
+        echo "TUNE: $TUNE"
+        echo "EXTRA_OPTS: $EXTRA_OPTS"
+    fi
 }
 
 
