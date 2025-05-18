@@ -1,26 +1,48 @@
----
-name: Feature Request
-about: Suggest an idea to improve the project
-title: "[FEATURE] Descriptive Title"
-labels: enhancement
-assignees: ''
+## [#XX - Título descriptivo de la issue](https://github.com/usuario/repositorio/issues/XX)
+
+**Fecha de creación:** YYYY-MM-DD
+**Autor:** @usuario  
+**Estado:** Abierta | Cerrada | En revisión | En desarrollo  
+**Tipo:** Mejora | Bug | Refactorización | Propuesta | Plugin nuevo  
 
 ---
 
-**Is your feature request related to a problem? Please describe.**
-A clear and concise description of the problem. Example: "I'm frustrated when..."
+### Resumen
 
-**Describe the solution you'd like**
-A clear and concise description of what you want to happen. Include examples if possible.
+Descripción clara y concisa del problema o propuesta. Incluye el contexto general y el objetivo principal.
 
-**Describe alternatives you've considered**
-A clear and concise description of any alternative solutions or features you've considered.
+---
 
-**What impact would this feature have?**
-Explain how this feature would benefit users or the project. Example: "This will improve the user experience by..."
+### Detalles técnicos
 
-**How urgent is this request?**
-Indicate whether this feature is critical, important, or just a desirable improvement.
+- **Comportamiento actual:** ¿Qué ocurre actualmente en el script?
+- **Comportamiento esperado:** ¿Qué debería ocurrir después de aplicar esta mejora o solución?
+- **Componentes afectados:** Archivos, funciones, comandos o módulos relacionados.
 
-**Additional context**
-Add any other context, screenshots, diagrams, or relevant links about the request here.
+---
+
+### Propuesta de implementación
+
+Pasos sugeridos, enfoque técnico o ideas para resolver la issue. Puede incluir:
+
+- lógica del plugin
+- estructura de carpetas o archivos
+- uso de parámetros
+- uso de herramientas externas (`ffprobe`, `mediainfo`, etc.)
+
+---
+
+### Criterios de aceptación
+
+- [ ] Se selecciona automáticamente el perfil adecuado.
+- [ ] No re-encodea archivos ya compatibles.
+- [ ] Compatible con otros plugins existentes.
+- [ ] Documentación actualizada.
+
+---
+
+### Ejemplos de uso
+
+```bash
+# Ejemplo práctico de cómo se usaría la solución
+./convert.sh --plugin auto_profile --input "pelicula.mkv"
