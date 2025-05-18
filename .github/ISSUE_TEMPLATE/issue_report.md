@@ -1,4 +1,11 @@
-## [#XX - Título descriptivo de la issue](https://github.com/usuario/repositorio/issues/XX)
+---
+name: Feature request
+about: Report a feature in the project
+title: "## [#XX - Título descriptivo de la issue]"
+labels: enhancement
+assignees: ''
+
+---
 
 **Fecha de creación:** YYYY-MM-DD
 **Autor:** @usuario  
