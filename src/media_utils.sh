@@ -77,10 +77,10 @@ video_convert() {
 
     if [[ -n "$subtitle_codec" ]]; then
         log "INFO" "Starting conversion with subtitles for: $input_file" "${LOG_FILE}"
-        ffmpeg -i "$input_file" -map 0 -c:v "$video_codec" -preset "$PRESET" -crf "$CRF" -c:a "$audio_codec" -c:s "$subtitle_codec" "$output_file" &>> "${FFMPEG_LOG_FILE}"
+        ffmpeg -y -i "$input_file" -map 0 -c:v "$video_codec" -preset "$PRESET" -crf "$CRF" -c:a "$audio_codec" -c:s "$subtitle_codec" "$output_file" &>> "${FFMPEG_LOG_FILE}"
     else
         log "INFO" "Starting conversion without subtitles for: $input_file" "${LOG_FILE}"
-        ffmpeg -i "$input_file" -map 0 -c:v "$video_codec" -preset "$PRESET" -crf "$CRF" -c:a "$audio_codec" -sn "$output_file" &>> "${FFMPEG_LOG_FILE}"
+        ffmpeg -y -i "$input_file" -map 0 -c:v "$video_codec" -preset "$PRESET" -crf "$CRF" -c:a "$audio_codec" -sn "$output_file" &>> "${FFMPEG_LOG_FILE}"
     fi
 
     if [[ $? -eq 0 ]]; then

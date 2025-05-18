@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # convert_x265: Batch video converter to H265 (HEVC) or container changer
 #
@@ -30,14 +30,15 @@
 
 
 # Detect if running from a deb package install or from source directory
-SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+readonly SCRIPT_PATH=$(realpath "${BASH_SOURCE[0]}")
+readonly SCRIPT_DIR=$(dirname "$SCRIPT_PATH")
 if [[ -d "/usr/local/share/x265_convert_script" && $SCRIPT_DIR == "/usr/local/bin" ]]; then
-    SHARE_PATH="/usr/local/share/x265_convert_script"
+    readonly SHARE_PATH="/usr/local/share/x265_convert_script"
 else
-    SHARE_PATH="$SCRIPT_DIR"
+    readonly SHARE_PATH="$SCRIPT_DIR"
 fi
 
-SRC_PATH="$SHARE_PATH/src"
+readonly SRC_PATH="$SHARE_PATH/src"
 # Load environment variables and utility functions
 if [[ -f "$SHARE_PATH/config/preferences.conf" ]]; then
     source "$SHARE_PATH/config/preferences.conf"
@@ -46,48 +47,25 @@ else
     exit 1
 fi
 
-if [[ -f "$SRC_PATH/logging.sh" ]]; then
-    source "$SRC_PATH/logging.sh"
-else
-    echo "Error: logging.sh not found in $SRC_PATH. Exiting..."
-    exit 1
-fi
-
-if [[ -f "$SRC_PATH/file_utils.sh" ]]; then
-    source "$SRC_PATH/file_utils.sh"
-else
-    echo "Error: file_utils.sh not found in $SRC_PATH. Exiting..."
-    exit 1
-fi
-
-if [[ -f "$SRC_PATH/backup.sh" ]]; then
-    source "$SRC_PATH/backup.sh"
-else
-    echo "Error: backup.sh not found in $SRC_PATH. Exiting..."
-    exit 1
-fi
-
-if [[ -f "$SRC_PATH/media_utils.sh" ]]; then
-    source "$SRC_PATH/media_utils.sh"
-else
-    echo "Error: media_utils.sh not found in $SRC_PATH. Exiting..."
-    exit 1
-fi
-
-
 # Verify if the required files exist
 declare -A required_files=(
-    ["preferences.conf"]="$SHARE_PATH/config"
     ["logging.sh"]="$SRC_PATH"
     ["file_utils.sh"]="$SRC_PATH"
     ["backup.sh"]="$SRC_PATH"
     ["check_update.sh"]="$SRC_PATH"
     ["media_utils.sh"]="$SRC_PATH"
 )
+
 for file in "${!required_files[@]}"; do
-    if [[ ! -f "${required_files[$file]}/$file" ]]; then
+    full_path="${required_files[$file]}/$file"
+    if [[ ! -f "$full_path" ]]; then
         echo "Error: Required file $file does not exist in ${required_files[$file]}. Exiting..."
         exit 1
+    fi
+
+    if [[ "$file" == *.sh ]]; then
+        # shellcheck disable=SC1090
+        source "$full_path"
     fi
 done
 
@@ -119,9 +97,9 @@ display_help() {
 #   $1 - The input video file to estimate the size for.
 estimate_video_size() {
     local input_file="$1"
-    local part_duration=10  # Duration in seconds for parts
+    local part_duration=5  # Duration in seconds for parts
     local total_size=0
-    local total_parts=10 # Number of parts to split the file into
+    local total_parts=5 # Number of parts to split the file into
     local total_duration=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$input_file" | cut -d. -f1)
 
     cleanup_temp_files
@@ -185,11 +163,8 @@ convert_to_h265_or_change_container() {
 
     # Estimate the size of the file after conversion
     log "DEBUG" "Estimating size for $input_file" "${LOG_FILE}"
-    local estimated_size=$(estimate_video_size "$input_file")
-    if [[ $? -ne 0 ]]; then
-        log "ERROR" "Error in estimate_video_size while estimating the size of file $input_file" "${LOG_FILE}"
-        return 1
-    fi
+    local estimated_size
+    estimated_size=$(estimate_video_size "$input_file") || return 1
     log "INFO" "Estimated size for the file after conversion: $estimated_size bytes" "${LOG_FILE}"
 
     local original_size=$(stat -c%s "$input_file")
@@ -263,7 +238,7 @@ while [[ $# -gt 0 ]]; do
             display_help
             ;;
         --version|-v)
-            check_update="$SRC_PATH/check_update.sh"
+            readonly check_update="$SRC_PATH/check_update.sh"
             if [[ -f "$check_update" ]]; then
                 source "$check_update"
                 check_update_version

@@ -2,9 +2,6 @@
 
 # This script contains utility functions for the x265 convert script.
 
-
-
-# Function to check if the file has the 'larger' attribute
 check_xattr() {
     local file="$1"
     local attr="$2"
@@ -12,18 +9,27 @@ check_xattr() {
         xattr -p "$attr" "$file" 2>/dev/null
     else
         log "ERROR" "xattr is not available on this system" "${LOG_FILE}"
-        return 1
+        return 2
     fi
 }
 
+# Function to check if the file has the 'larger' attribute
 check_xattr_larger() {
     local file="$1"
-    [[ "$(check_xattr "$file" "user.larger")" == "true" ]]
+    local value
+    value="$(check_xattr "$file" "user.larger")"
+    [[ "$value" == "true" ]]
 }
 
 mark_xattr() {
     local file="$1"
     local attr="$2"
+
+    if [[ ! -f "$file" ]]; then
+        log "ERROR" "File does not exist: $file" "${LOG_FILE}"
+        return 1
+    fi
+
     if command -v xattr &>/dev/null; then
         xattr -w "$attr" true "$file"
     else
@@ -58,8 +64,11 @@ find_pending_files() {
 get_output_path() {
     local input_file="$1"
     local codec_suffix="$2"     # Ejemplo: x265, x264
-    local base_name="$(basename "$input_file" | sed 's/\.[^.]*$//')"
-    local dir_name="$(dirname "$input_file")"
+    local base_name
+    local dir_name
+
+    base_name="$(basename "$input_file" | sed 's/\.[^.]*$//')"
+    dir_name="$(dirname "$input_file")"
 
     # Validar que OUTPUT_EXTENSION esté definida
     if [[ -z "$OUTPUT_EXTENSION" ]]; then
@@ -67,25 +76,44 @@ get_output_path() {
         return 1
     fi
 
-    echo "${dir_name}/${base_name}.${codec_suffix}.${OUTPUT_EXTENSION}"
+    local ext="${OUTPUT_EXTENSION#.}"  # Eliminar punto inicial si lo hay
+
+    echo "${dir_name}/${base_name}.${codec_suffix}.${ext}"
 }
 
 
 process_file() {
     local file="$1"
-    local codec=$(detect_codec "$file")
-    if [[ -z "$codec" ]]; then
-        log "ERROR" "Error: Could not detect codec of file $file" "${LOG_FILE}"
+
+    if [[ ! -f "$file" ]]; then
+        log "ERROR" "File does not exist: $file" "${LOG_FILE}"
         return 1
     fi
-    local filename_without_extension=$(basename "$file" | sed 's/\.[^.]*$//')
-    local new_path=$(get_output_path "$file" "x265")
+
+    local codec
+    codec=$(detect_codec "$file")
+
+    if [[ -z "$codec" ]]; then
+        log "ERROR" "Could not detect codec of file $file" "${LOG_FILE}"
+        return 1
+    fi
+
+    local new_path
+    new_path=$(get_output_path "$file" "x265")
+
     log "DEBUG" "Detected codec for $file: $codec" "${LOG_FILE}"
+    log "DEBUG" "Output path for $file: $new_path" "${LOG_FILE}"
+
     convert_to_h265_or_change_container "$file" "$new_path" "$codec"
 }
 
 human_size() {
-    numfmt --to=iec "$1"
+    local input="$1"
+    if [[ ! "$input" =~ ^[0-9]+$ ]]; then
+        echo "Error: input must be a positive integer" >&2
+        return 1
+    fi
+    numfmt --to=iec "$input"
 }
 
 export -f find_pending_files
