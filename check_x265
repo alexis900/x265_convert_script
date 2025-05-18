@@ -20,26 +20,25 @@ else
     exit 1
 fi
 
-if [[ -f "$SRC_PATH/logging.sh" ]]; then
-    source "$SRC_PATH/logging.sh"
-else
-    echo "Error: logging.sh not found in $SRC_PATH. Exiting..."
-    exit 1
-fi
+# Verify if the required files exist
+declare -A required_files=(
+    ["logging.sh"]="$SRC_PATH"
+    ["file_utils.sh"]="$SRC_PATH"
+    ["media_utils.sh"]="$SRC_PATH"
+)
 
-if [[ -f "$SRC_PATH/file_utils.sh" ]]; then
-    source "$SRC_PATH/file_utils.sh"
-else
-    echo "Error: file_utils.sh not found in $SRC_PATH. Exiting..."
-    exit 1
-fi
+for file in "${!required_files[@]}"; do
+    full_path="${required_files[$file]}/$file"
+    if [[ ! -f "$full_path" ]]; then
+        echo "Error: Required file $file does not exist in ${required_files[$file]}. Exiting..."
+        exit 1
+    fi
 
-if [[ -f "$SRC_PATH/media_utils.sh" ]]; then
-    source "$SRC_PATH/media_utils.sh"
-else
-    echo "Error: media_utils.sh not found in $SRC_PATH. Exiting..."
-    exit 1
-fi
+    if [[ "$file" == *.sh ]]; then
+        # shellcheck disable=SC1090
+        source "$full_path"
+    fi
+done
 
 log "INFO" "Checking directory: ${ACTUAL_DIR}" "${REMAINING_LOG}"
 if [ ! -d "${ACTUAL_DIR}" ]; then
