@@ -25,6 +25,10 @@ log() {
     local logfile="$3"
     local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
 
+    if [[ ! -d "${HOME}/.log/" ]]; then
+        mkdir "${HOME}/.log/"
+    fi
+
     # Use the LOG_LEVEL environment variable
     if [[ ${LOG_LEVELS[$level]} -ge ${LOG_LEVELS[$LOG_LEVEL]} ]]; then
         echo "[$timestamp] [$level] $message" | tee -a "$logfile"

@@ -1,9 +1,44 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# This script converts video files to H265 (HEVC) format or changes their container.
-SHARE_PATH="/usr/local/share/x265_convert_script"
-#SHARE_PATH="$(pwd)"
-SRC_PATH="$SHARE_PATH/src"
+# convert_x265: Batch video converter to H265 (HEVC) or container changer
+#
+# Usage:
+#   ./convert_x265 [options]
+#
+# Options:
+#   --help, -h                Show this help message and exit.
+#   --version, -v             Show script version and exit.
+#   --dir, -d <directory>     Specify the directory to process (overrides actual_dir).
+#   --file, -f <file>         Specify a single file to process.
+#   --log-level <level>       Set log level (DEBUG, INFO, WARNING, ERROR).
+#   --estimate-size <file>    Estimate the size after H265 conversion for a file.
+#   --check-xattr <file>      Check if the xattr user.larger is present on a file.
+#   --cleanup-temp-files      Clean up temporary files created during processing.
+#
+# Examples:
+#   ./convert_x265 --dir /path/to/videos --log-level DEBUG
+#   ./convert_x265 --file /path/to/video.mp4
+#   ./convert_x265 --estimate-size /path/to/video.mp4
+#
+# Requirements:
+#   - ffmpeg, ffprobe, bc, grep, cut, stat, wc, numfmt
+#   - Configuration in config/preferences.conf
+#   - Helper scripts in src/
+#
+# Author: Alejandro Martín Pérez
+# License: MIT License
+
+
+# Detect if running from a deb package install or from source directory
+readonly SCRIPT_PATH=$(realpath "${BASH_SOURCE[0]}")
+readonly SCRIPT_DIR=$(dirname "$SCRIPT_PATH")
+if [[ -d "/usr/local/share/x265_convert_script" && $SCRIPT_DIR == "/usr/local/bin" ]]; then
+    readonly SHARE_PATH="/usr/local/share/x265_convert_script"
+else
+    readonly SHARE_PATH="$SCRIPT_DIR"
+fi
+
+readonly SRC_PATH="$SHARE_PATH/src"
 # Load environment variables and utility functions
 if [[ -f "$SHARE_PATH/config/preferences.conf" ]]; then
     source "$SHARE_PATH/config/preferences.conf"
@@ -12,61 +47,27 @@ else
     exit 1
 fi
 
-if [[ -f "$SRC_PATH/logging.sh" ]]; then
-    source "$SRC_PATH/logging.sh"
-else
-    echo "Error: logging.sh not found in $SRC_PATH. Exiting..."
-    exit 1
-fi
-
-if [[ -f "$SRC_PATH/file_utils.sh" ]]; then
-    source "$SRC_PATH/file_utils.sh"
-else
-    echo "Error: file_utils.sh not found in $SRC_PATH. Exiting..."
-    exit 1
-fi
-
-if [[ -f "$SRC_PATH/backup.sh" ]]; then
-    source "$SRC_PATH/backup.sh"
-else
-    echo "Error: backup.sh not found in $SRC_PATH. Exiting..."
-    exit 1
-fi
-
-if [[ -f "$SRC_PATH/check_update.sh" ]]; then
-    source "$SRC_PATH/check_update.sh"
-else
-    echo "Error: check_update.sh not found in $SRC_PATH. Exiting..."
-    exit 1
-fi
-
-
 # Verify if the required files exist
 declare -A required_files=(
-    ["preferences.conf"]="$SHARE_PATH/config"
     ["logging.sh"]="$SRC_PATH"
     ["file_utils.sh"]="$SRC_PATH"
     ["backup.sh"]="$SRC_PATH"
     ["check_update.sh"]="$SRC_PATH"
+    ["media_utils.sh"]="$SRC_PATH"
 )
+
 for file in "${!required_files[@]}"; do
-    if [[ ! -f "${required_files[$file]}/$file" ]]; then
+    full_path="${required_files[$file]}/$file"
+    if [[ ! -f "$full_path" ]]; then
         echo "Error: Required file $file does not exist in ${required_files[$file]}. Exiting..."
         exit 1
     fi
-done
 
-process_file() {
-    local file="$1"
-    local codec=$(detect_codec "$file")
-    if [[ -z "$codec" ]]; then
-        log "ERROR" "Error: Could not detect codec of file $file" "${LOG_FILE}"
-        return 1
+    if [[ "$file" == *.sh ]]; then
+        # shellcheck disable=SC1090
+        source "$full_path"
     fi
-    local h265_path="$(dirname "$file")/$(basename "$file" | cut -d. -f1).x265.mkv"
-    log "DEBUG" "Detected codec for $file: $codec" "${LOG_FILE}"
-    convert_to_h265_or_change_container "$file" "$h265_path" "$codec"
-}
+done
 
 
 # Function to display help
@@ -74,40 +75,49 @@ display_help() {
     echo "Usage: $0 [options]"
     echo
     echo "Options:"
-    echo "  --help       Display this help message and exit"
-    echo "  --version    Display the version information and exit"
-    echo "  --dir PATH   Specify the directory to process (overrides actual_dir)"
-    echo "  --file PATH  Specify the file to process"
-    echo "  --log-level LEVEL  Set the log level (DEBUG, INFO, WARNING, ERROR)"
+    echo "  --help, -h                Show this help message and exit"
+    echo "  --version, -v             Show script version and exit"
+    echo "  --dir, -d <directory>     Specify the directory to process (overrides actual_dir)"
+    echo "  --file, -f <file>         Specify a single file to process"
+    echo "  --log-level <level>       Set log level (DEBUG, INFO, WARNING, ERROR)"
+    echo "  --estimate-size <file>    Estimate the size after H265 conversion for a file"
+    echo "  --check-xattr <file>      Check if the xattr user.larger is present on a file"
+    echo "  --cleanup-temp-files      Clean up temporary files created during processing"
+    echo
+    echo "Examples:"
+    echo "  $0 --dir /path/to/videos --log-level DEBUG"
+    echo "  $0 --file /path/to/video.mp4"
+    echo "  $0 --estimate-size /path/to/video.mp4"
     exit 0
 }
 
 
-# Function to check if the file has valid subtitles
-has_valid_subtitles() {
-    ffprobe -v $FFMPEG_LOG_LEVEL -select_streams s -show_entries stream=codec_name -of csv=p=0 "$1" | grep -qE 'srt|subrip|ass|ssa'
-}
-
 # Function to estimate the size of the file after conversion to H265
-estimate_h265_size() {
+# Parameters:
+#   $1 - The input video file to estimate the size for.
+estimate_video_size() {
     local input_file="$1"
-    local part_duration=10  # Duration in seconds for parts
+    local part_duration=5  # Duration in seconds for parts
     local total_size=0
-    rm -f /tmp/tmp_h265_part_*.mkv
+    local total_parts=5 # Number of parts to split the file into
+    local total_duration=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$input_file" | cut -d. -f1)
+
+    cleanup_temp_files
+
     log "INFO" "Estimating size for: $input_file" "${LOG_FILE}"
     
     # Ensure the /tmp directory exists
     mkdir -p /tmp
 
     # Convert the file in 10 parts of 10 seconds to estimate the size
-    for i in $(seq 0 9); do
-        local tmp_output="/tmp/tmp_h265_part_$i.mkv"
+    for i in $(seq 0 $((total_parts - 1))); do
+        local tmp_output="/tmp/tmp_h265_part_$i.${OUTPUT_EXTENSION}"
         log "DEBUG" "Processing part $i of file $input_file" "${LOG_FILE}"
 
-        ffmpeg -i "$input_file" -ss $((i * part_duration)) -t "$part_duration" -c:v libx265 -preset $FFMPEG_PRESET -crf $FFMPEG_CRF -c:a $FFMPEG_AUDIO_CODEC -sn -f matroska "$tmp_output" &>> "$ffmpeg_log_file"
+        ffmpeg -i "$input_file" -ss $((i * part_duration)) -t "$part_duration" -c:v $VIDEO_CODEC -preset $PRESET -crf $CRF -c:a $AUDIO_CODEC -sn -f matroska "$tmp_output" &>> "${FFMPEG_LOG_FILE}"
 
         if [[ $? -ne 0 ]]; then
-            log "ERROR" "Error converting part $i of file $input_file" "${LOG_FILE}"
+            log "ERROR" "Error converting part $i of file $input_file. FFmpeg output: $(cat "${FFMPEG_LOG_FILE}")" "${LOG_FILE}"
             cleanup_temp_files
             return 1
         fi
@@ -116,7 +126,7 @@ estimate_h265_size() {
         if [[ -f "$tmp_output" ]]; then
             local part_size=$(wc -c < "$tmp_output")
             total_size=$((total_size + part_size))
-            log "DEBUG" "Part $i processed, size: $part_size bytes" "${LOG_FILE}"
+            log "DEBUG" "Part $i processed, size: $(human_size $total_size)" "${LOG_FILE}"
         else
             log "ERROR" "Could not create temporary file $tmp_output" "${LOG_FILE}"
             cleanup_temp_files
@@ -124,30 +134,20 @@ estimate_h265_size() {
         fi
     done
 
-    # Delete all temporary files at once
-    rm /tmp/tmp_h265_part_*.mkv
-
-    log "INFO" "Total estimated size for $input_file: $total_size bytes" "${LOG_FILE}"
-    
-    echo "$total_size"
-}
-
-# Function to verify the quality of the converted file
-verify_quality() {
-    local input_file="$1"
-    local output_file="$2"
-
-    log "INFO" "Verifying quality of converted file: $output_file" "${LOG_FILE}"
-
-    # Compare the duration of the original and converted files
-    local original_duration=$(ffprobe -v $FFMPEG_LOG_LEVEL -show_entries format=duration -of csv=p=0 "$input_file")
-    local converted_duration=$(ffprobe -v $FFMPEG_LOG_LEVEL -show_entries format=duration -of csv=p=0 "$output_file")
-
-    if [[ $(echo "$original_duration == $converted_duration" | bc -l) -eq 1 ]]; then
-        log "INFO" "The duration of the converted file matches the original." "${LOG_FILE}"
-    else
-        log "WARNING" "The duration of the converted file does not match the original." "${LOG_FILE}"
+    if [[ -z "$total_duration" || "$total_duration" -eq 0 ]]; then
+        log "ERROR" "Invalid total duration for $input_file. Cannot estimate size." "${LOG_FILE}"
+        cleanup_temp_files
+        return 1
     fi
+
+    # Adjustment: the estimation is proportional to the size of the converted parts relative to the total duration
+
+    estimated_size=$(( total_size * total_duration / (part_duration * total_parts) ))
+    log "INFO" "Total estimated size for $input_file: $(human_size $estimated_size)" "${LOG_FILE}"
+    echo "$estimated_size"
+
+    # Delete all temporary files at once
+    cleanup_temp_files
 }
 
 # Function to convert the file to H265 or change the container
@@ -163,11 +163,8 @@ convert_to_h265_or_change_container() {
 
     # Estimate the size of the file after conversion
     log "DEBUG" "Estimating size for $input_file" "${LOG_FILE}"
-    local estimated_size=$(estimate_h265_size "$input_file")
-    if [[ $? -ne 0 ]]; then
-        log "ERROR" "Error in estimate_h265_size while estimating the size of file $input_file" "${LOG_FILE}"
-        return 1
-    fi
+    local estimated_size
+    estimated_size=$(estimate_video_size "$input_file") || return 1
     log "INFO" "Estimated size for the file after conversion: $estimated_size bytes" "${LOG_FILE}"
 
     local original_size=$(stat -c%s "$input_file")
@@ -175,18 +172,16 @@ convert_to_h265_or_change_container() {
 
     if (( estimated_size > original_size )) && [[ "$codec" != "h264" ]]; then
         log "INFO" "The estimated size in H265 is larger than the original and the codec is not H264. Converting to H264." "${LOG_FILE}"
-        FFMPEG_VIDEO_CODEC="libx264"
-        output_file="$(dirname "$input_file")/$(basename "$input_file" | cut -d. -f1).x264.mkv"
+        VIDEO_CODEC="libx264"
+        output_file=$(get_output_path "$input_file" "x264")
     else
-        FFMPEG_VIDEO_CODEC="libx265"
+        VIDEO_CODEC="libx265"
     fi
 
     if has_valid_subtitles "$input_file"; then
-        log "INFO" "The file has subtitles. Starting conversion with subtitles." "${LOG_FILE}"
-        ffmpeg -i "$input_file" -map 0 -c:v $FFMPEG_VIDEO_CODEC -preset $FFMPEG_PRESET -crf $FFMPEG_CRF -c:a $FFMPEG_AUDIO_CODEC -c:s $FFMPEG_SUBTITLE_CODEC "$output_file" 2>> "$ffmpeg_log_file"
+        video_convert "$input_file" "$output_file" "$VIDEO_CODEC" "$SUBTITLE_CODEC" "$AUDIO_CODEC"
     else
-        log "INFO" "The file does not have subtitles. Starting conversion without subtitles." "${LOG_FILE}"
-        ffmpeg -i "$input_file" -c:v $FFMPEG_VIDEO_CODEC -preset $FFMPEG_PRESET -crf $FFMPEG_CRF -c:a $FFMPEG_AUDIO_CODEC -sn "$output_file" 2>> "$ffmpeg_log_file"
+        video_convert "$input_file" "$output_file" "$VIDEO_CODEC" "" "$AUDIO_CODEC"
     fi
 
     if [[ $? -eq 0 ]]; then
@@ -232,7 +227,7 @@ function find_files () {
         done <<< "$files"
 
         log "INFO" "Waiting 10 seconds before the next iteration..." "${LOG_FILE}"
-        sleep 10
+        sleep ${SLEEP_TIME}
     done
 }
 
@@ -243,12 +238,19 @@ while [[ $# -gt 0 ]]; do
             display_help
             ;;
         --version|-v)
-            check_version
-            exit 0
+            readonly check_update="$SRC_PATH/check_update.sh"
+            if [[ -f "$check_update" ]]; then
+                source "$check_update"
+                check_update_version
+                exit 0
+            else
+                echo "Error: $check_update not found. Exiting..."
+                exit 1
+            fi
             ;;
         --dir|-d)
             if [[ -n "$2" ]]; then
-                $ACTUAL_DIR="$2"
+                ACTUAL_DIR="$2"
                 shift
             else
                 echo "Error: --dir requires a directory path as an argument."
@@ -283,6 +285,48 @@ while [[ $# -gt 0 ]]; do
                 shift
             else
                 echo "Error: --log-level requires a log level as an argument."
+                exit 1
+            fi
+            ;;
+        --estimate-size)
+            if [[ -n "$2" ]]; then
+                estimate_video_size "$2"
+                exit 0
+            else
+                echo "Error: --estimate-size requires a file path as an argument."
+                exit 1
+            fi
+            ;;
+        --check-xattr)
+            if [[ -n "$2" ]]; then
+                check_xattr_larger "$2"
+                exit 0
+            else
+                echo "Error: --check-xattr requires a file path as an argument."
+                exit 1
+            fi
+            ;;
+        # This option cleans up temporary files created during processing and exits immediately.
+        --cleanup-temp-files)
+            cleanup_temp_files
+            exit 0
+            ;;
+        --list-profiles)
+            if [[ -d "$SRC_PATH/profiles" ]]; then
+                echo "Available profiles:"
+                ls "$SRC_PATH/profiles"
+            else
+                echo "Error: Profiles directory not found."
+                exit 1
+            fi
+            exit 0
+            ;;
+        --profile)
+            if [[ -n "$2" ]]; then
+                load_profile "$2"
+                shift
+            else
+                echo "Error: --profile requires a profile file as an argument."
                 exit 1
             fi
             ;;
