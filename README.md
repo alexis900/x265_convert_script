@@ -14,18 +14,25 @@ This script automates the conversion of video files to H265 (HEVC) format or cha
 ## Quick Usage
 
 1. Convert files in the default directory:
+
    ```bash
    ./convert_x265
    ```
+
 2. Specify a custom directory:
+
    ```bash
    ./convert_x265 --dir /path/to/my/directory
    ```
+
 3. Process a single file:
+
    ```bash
    ./convert_x265 --file /path/to/my/video.mp4
    ```
+
 4. Show version or help:
+
    ```bash
    ./convert_x265 --version
    ./convert_x265 --help
@@ -132,3 +139,9 @@ It is installed at `/usr/share/man/man1/convert_x265.1.gz` and is automatically 
 ## License
 
 Project under MIT license.
+
+---
+
+## Roadmap
+
+For our future plans and upcoming features, please see our [Roadmap](https://github.com/alexis900/x265_convert_script/blob/main/ROADMAP.md).

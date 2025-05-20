@@ -1,34 +1,81 @@
+
 ---
-name: Bug Report
-about: Report a problem or unexpected behavior in the project
-title: "[BUG] Descriptive Title"
+
+## 🐞 **Bug Report – Enhanced Template**
+
+```yaml
+---
+name: Bug report
+about: Report a bug or unintended behavior
+title: "## [#XX - Brief description of the bug]"
 labels: bug
 assignees: ''
 
 ---
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+**Creation date:** YYYY-MM-DD  
+**Author:** @{{ github.actor }}
+**Status:** ☐ Open ☐ In progress ☐ In review ☐ Closed  
+**Severity:** ☐ Minor ☐ Major ☐ Critical
 
-**To Reproduce**
-Steps to reproduce the behavior:
+---
 
-1. Go to '...'
-2. Click on '...'
-3. Scroll down to '...'
-4. See error
+### 📝 Summary
 
-**Expected behavior**
-A clear and concise description of what you expected to happen.
+Describe the issue and how it negatively affects functionality.
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
+---
 
-**Environment (please complete the following information):**
+### 🔁 Steps to Reproduce
 
-- OS: [e.g., Windows, macOS, Linux]
-- Version [e.g., 22]
-- Other relevant details
+1. Run this command: `./convert.sh --input "video.mp4"`
+2. Observe the issue in output
+3. Confirm it occurs consistently
 
-**Additional context**
-Add any other context about the problem here.
+---
+
+### ✅ Expected Behavior
+
+Explain what should ideally happen instead.
+
+---
+
+### ❌ Actual Behavior
+
+What is happening instead? Include error messages, unexpected output, or behavior.
+
+---
+
+### 🧪 Environment
+
+- OS: Debian / Ubuntu / Arch / etc.  
+- Bash version: `bash --version`  
+- ffmpeg version: `ffmpeg -version`  
+- Dependencies: ffprobe, mediainfo, etc.
+
+---
+
+### ⚠️ Affected Components
+
+List of impacted scripts, modules or functions.
+
+---
+
+### 📋 Logs and Output
+
+Paste any relevant logs or terminal output.
+
+---
+
+### ✅ Acceptance Criteria
+
+- [ ] Issue is reproducible and clearly defined
+- [ ] Fixed version no longer triggers the bug
+- [ ] No regressions in related functionality
+- [ ] Logging and cleanup function correctly
+
+---
+
+### 📎 Additional Context
+
+Screenshots, linked issues, and system-specific anomalies.
