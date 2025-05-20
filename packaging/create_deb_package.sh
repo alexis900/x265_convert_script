@@ -21,10 +21,8 @@ fi
 # Create the necessary directory structure
 mkdir -p debian/DEBIAN
 mkdir -p debian/usr/local/bin
-mkdir -p debian/usr/local/share/x265_convert_script/config
-mkdir -p debian/usr/local/share/x265_convert_script/src/profiles
-mkdir -p debian/usr/share/metainfo
-mkdir -p debian/usr/share/man/man1
+mkdir -p debian/usr/local/share/x265_convert_script/{config,src/profiles}
+mkdir -p debian/usr/share/{metainfo,doc/x265_convert_script,man/man1}
 
 # Create the control file
 cat <<EOF > debian/DEBIAN/control
@@ -87,7 +85,10 @@ for file in "${PROFILE_PATH[@]}"; do
 done
 
 # Copy app metadata
-cp "$PACKAGING_PATH/appdata.xml" debian/usr/share/metainfo/appdata.xml
+cp "$PACKAGING_PATH/appdata.xml" debian/usr/share/metainfo/x265_converter_script.appdata.xml
+
+# Copy project README
+cp "$SHARE_PATH/README.md" debian/usr/share/doc/x265_convert_script/README.md
 
 # Install the man page
 if [[ -f "$PACKAGING_PATH/convert_x265.1" ]]; then

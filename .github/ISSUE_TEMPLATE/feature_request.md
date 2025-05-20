@@ -9,8 +9,8 @@ assignees: ''
 
 **Creation date:** YYYY-MM-DD  
 **Author:** @{{ github.actor }}
-**Status:** ☐ Open ☐ In progress ☐ In review ☐ Closed  
-**Type:** ☐ Enhancement ☐ Proposal ☐ New plugin
+**Status:** [ ] Open [ ] In progress [ ] In review [ ] Closed  
+**Type:** [ ] Enhancement [ ] Proposal [ ] New plugin
 
 ---
 
@@ -31,6 +31,7 @@ Briefly describe the proposed feature or idea. Include the context, current limi
 ### 💡 Implementation Proposal
 
 Outline the technical plan or idea:
+
 - Plugin logic (if applicable)
 - Suggested file or directory structure
 - Parameters or flags to be added
