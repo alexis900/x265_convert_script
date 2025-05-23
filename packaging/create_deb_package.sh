@@ -73,7 +73,7 @@ cp "$SHARE_PATH/version" debian/usr/local/share/x265_convert_script/version
 cp "$CONFIG_PATH/preferences.conf" debian/usr/local/share/x265_convert_script/config/preferences.conf
 
 # Copy source scripts
-SRC_FILES=("logging.sh" "file_utils.sh" "check_update.sh" "backup.sh" "media_utils.sh")
+SRC_FILES=("logging.sh" "file_utils.sh" "check_update.sh" "backup.sh" "media_utils.sh" "arguments.sh" "display_help.sh")
 for file in "${SRC_FILES[@]}"; do
     cp "$SRC_PATH/$file" "debian/usr/local/share/x265_convert_script/src/$file"
 done
