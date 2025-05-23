@@ -1,12 +1,29 @@
 #!/bin/bash
 
+check_input() {
+    local input="$1"
+    if [[ -d "$input" ]]; then
+        ACTUAL_DIR="$input"
+    elif [[ -f "$input" ]]; then
+        process_file "$input"
+    else
+        log "ERROR" "Input path '$input' must be a file or directory" "${LOG_FILE}"
+        return 1
+    fi
+}
+
+PARSED=$(getopt -o hi:c:v --long help,input:,version,codec:,log-level:,estimate-size:,check-xattr,cleanup-temp-files,list-profiles,profile: -n 'x265_convert' -- "$@")
+
+eval set -- "$PARSED"
+
 # Parse arguments
-while [[ $# -gt 0 ]]; do
+while true; do
     case "$1" in
-        --help|-h)
+        -h|--help)
             display_help
+            exit 0
             ;;
-        --version|-v)
+        -v|--version)
             readonly check_update="$SRC_PATH/check_update.sh"
             if [[ -f "$check_update" ]]; then
                 source "$check_update"
@@ -17,29 +34,11 @@ while [[ $# -gt 0 ]]; do
                 exit 1
             fi
             ;;
-        --dir|-d)
-            if [[ -n "$2" ]]; then
-                ACTUAL_DIR="$2"
+        -i|--input)
+                check_input "$2"
                 shift
-            else
-                echo "Error: --dir requires a directory path as an argument."
-                exit 1
-            fi
             ;;
-        --file|-f)
-            if [[ -n "$2" ]]; then
-                if [[ -f "$2" ]]; then
-                    process_file "$2"
-                else
-                    echo "Error: File $2 does not exist."
-                    exit 1
-                fi
-            else
-                echo "Error: --file requires a file path as an argument."
-                exit 1
-            fi
-            ;;
-        --codec|-c)
+        -c|--codec)
             if [[ -n "$2" ]]; then
                 detect_codec "$2"
                 exit 0
@@ -99,10 +98,12 @@ while [[ $# -gt 0 ]]; do
                 exit 1
             fi
             ;;
+        --) shift; break ;;
         *)
-            echo "Unknown option: $1"
+            echo "Error: Unknown option: $1" >&2
             display_help
-            ;;
+            exit 1
+        ;;
     esac
     shift
 done

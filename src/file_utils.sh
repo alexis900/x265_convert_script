@@ -104,6 +104,11 @@ process_file() {
     log "DEBUG" "Detected codec for $file: $codec" "${LOG_FILE}"
     log "DEBUG" "Output path for $file: $new_path" "${LOG_FILE}"
 
+    if ! declare -f convert_to_h265_or_change_container &>/dev/null; then
+        log "ERROR" "Function convert_to_h265_or_change_container is not defined" "${LOG_FILE}"
+        return 1
+    fi
+
     convert_to_h265_or_change_container "$file" "$new_path" "$codec"
 }
 

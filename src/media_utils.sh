@@ -92,6 +92,114 @@ video_convert() {
     fi
 }
 
+# Function to convert the file to H265 or change the container
+convert_to_h265_or_change_container() {
+    local input_file="$1"
+    local output_file="$2"
+    local codec="$3"
+
+    log "INFO" "Processing file: $input_file" "${LOG_FILE}"
+
+    # Create a backup of the original file
+    backup_file "$input_file"
+
+    # Estimate the size of the file after conversion
+    log "DEBUG" "Estimating size for $input_file" "${LOG_FILE}"
+    local estimated_size
+    estimated_size=$(estimate_video_size "$input_file") || return 1
+    log "INFO" "Estimated size for the file after conversion: $estimated_size bytes" "${LOG_FILE}"
+
+    local original_size=$(stat -c%s "$input_file")
+    log "INFO" "Original file size: $original_size bytes" "${LOG_FILE}"
+
+    if (( estimated_size > original_size )) && [[ "$codec" != "h264" ]]; then
+        log "INFO" "The estimated size in H265 is larger than the original and the codec is not H264. Converting to H264." "${LOG_FILE}"
+        VIDEO_CODEC="libx264"
+        output_file=$(get_output_path "$input_file" "x264")
+    else
+        VIDEO_CODEC="libx265"
+    fi
+
+    if has_valid_subtitles "$input_file"; then
+        video_convert "$input_file" "$output_file" "$VIDEO_CODEC" "$SUBTITLE_CODEC" "$AUDIO_CODEC"
+    else
+        video_convert "$input_file" "$output_file" "$VIDEO_CODEC" "" "$AUDIO_CODEC"
+    fi
+
+    if [[ $? -eq 0 ]]; then
+        log "INFO" "Conversion completed successfully: $output_file" "${LOG_FILE}"
+        if verify_quality "$input_file" "$output_file"; then
+            log "INFO" "Deleting original file: $input_file" "${LOG_FILE}"
+            rm "$input_file"
+            delete_backup "$input_file"
+        else
+            log "WARNING" "The quality of the converted file is not acceptable. Keeping the original file." "${LOG_FILE}"
+        fi
+    else
+        log "ERROR" "Error during conversion: $output_file" "${LOG_FILE}"
+        log "INFO" "Restoring the original file from backup: $input_file" "${LOG_FILE}"
+        cp "$BACKUP_DIR/$(basename "$input_file")" "$input_file"
+    fi
+}
+
+# Function to estimate the size of the file after conversion to H265
+# Parameters:
+#   $1 - The input video file to estimate the size for.
+estimate_video_size() {
+    local input_file="$1"
+    local part_duration=5  # Duration in seconds for parts
+    local total_size=0
+    local total_parts=5 # Number of parts to split the file into
+    local total_duration=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$input_file" | cut -d. -f1)
+
+    cleanup_temp_files
+
+    log "INFO" "Estimating size for: $input_file" "${LOG_FILE}"
+    
+    # Ensure the /tmp directory exists
+    mkdir -p /tmp
+
+    # Convert the file in 10 parts of 10 seconds to estimate the size
+    for i in $(seq 0 $((total_parts - 1))); do
+        local tmp_output="/tmp/tmp_h265_part_$i.${OUTPUT_EXTENSION}"
+        log "DEBUG" "Processing part $i of file $input_file" "${LOG_FILE}"
+
+        ffmpeg -i "$input_file" -ss $((i * part_duration)) -t "$part_duration" -c:v $VIDEO_CODEC -preset $PRESET -crf $CRF -c:a $AUDIO_CODEC -sn -f matroska "$tmp_output" &>> "${FFMPEG_LOG_FILE}"
+
+        if [[ $? -ne 0 ]]; then
+            log "ERROR" "Error converting part $i of file $input_file. FFmpeg output: $(cat "${FFMPEG_LOG_FILE}")" "${LOG_FILE}"
+            cleanup_temp_files
+            return 1
+        fi
+
+        # Sum the size of each part
+        if [[ -f "$tmp_output" ]]; then
+            local part_size=$(wc -c < "$tmp_output")
+            total_size=$((total_size + part_size))
+            log "DEBUG" "Part $i processed, size: $(human_size $total_size)" "${LOG_FILE}"
+        else
+            log "ERROR" "Could not create temporary file $tmp_output" "${LOG_FILE}"
+            cleanup_temp_files
+            return 1
+        fi
+    done
+
+    if [[ -z "$total_duration" || "$total_duration" -eq 0 ]]; then
+        log "ERROR" "Invalid total duration for $input_file. Cannot estimate size." "${LOG_FILE}"
+        cleanup_temp_files
+        return 1
+    fi
+
+    # Adjustment: the estimation is proportional to the size of the converted parts relative to the total duration
+
+    estimated_size=$(( total_size * total_duration / (part_duration * total_parts) ))
+    log "INFO" "Total estimated size for $input_file: $(human_size $estimated_size)" "${LOG_FILE}"
+    echo "$estimated_size"
+
+    # Delete all temporary files at once
+    cleanup_temp_files
+}
+
 load_profile () {
     local profile="$1"
     local profile_file="$SRC_PATH/profiles/${profile}.conf"
@@ -122,3 +230,5 @@ export -f detect_codec
 export -f verify_quality
 export -f video_convert
 export -f load_profile
+export -f convert_to_h265_or_change_container
+export -f estimate_video_size
