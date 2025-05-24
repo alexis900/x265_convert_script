@@ -4,11 +4,13 @@
 
 # Set SHARE_PATH to the absolute path of the project root
 SHARE_PATH="$(dirname $(dirname $(realpath $0)))"
-echo SHARE_PATH: $SHARE_PATH
 SRC_PATH="$SHARE_PATH/src"
 PROFILE_PATH="$SRC_PATH/profiles"
 CONFIG_PATH="$SHARE_PATH/config"
 PACKAGING_PATH="$SHARE_PATH/packaging"
+VERSION_FILE="$SHARE_PATH/version"
+
+
 
 # Correct the path to the version file
 if [[ -f "$SHARE_PATH/version" ]]; then
@@ -18,14 +20,18 @@ else
     exit 1
 fi
 
-# Create the necessary directory structure
-mkdir -p debian/DEBIAN
-mkdir -p debian/usr/local/bin
-mkdir -p debian/usr/local/share/x265_convert_script/{config,src/profiles}
-mkdir -p debian/usr/share/{metainfo,doc/x265_convert_script,man/man1}
+INSTALL_ROOT="debian"
+BIN_PATH="$INSTALL_ROOT/usr/local/bin"
+SHARE_BASE="$INSTALL_ROOT/usr/local/share/x265_convert_script"
+METAINFO_PATH="$INSTALL_ROOT/usr/share/metainfo"
+DOC_PATH="$INSTALL_ROOT/usr/share/doc/x265_convert_script"
+MAN_PATH="$INSTALL_ROOT/usr/share/man/man1"
+
+mkdir -p "$INSTALL_ROOT/DEBIAN"
+
 
 # Create the control file
-cat <<EOF > debian/DEBIAN/control
+cat <<EOF > $INSTALL_ROOT/DEBIAN/control
 Package: $PACKAGE_NAME
 Version: $VERSION-$CHANNEL
 Section: utils
@@ -36,64 +42,44 @@ Maintainer: $MAINTAINER
 Description: $DESCRIPTION
 EOF
 
-# Create the post-installation script
-cat <<EOF > debian/DEBIAN/postinst
+# Postinst
+cat <<'EOF' > "$INSTALL_ROOT/DEBIAN/postinst"
 #!/bin/bash
-
 set -e
-
-if [[ -f /usr/local/bin/convert_x265 ]]; then
-    chmod +x /usr/local/bin/convert_x265
-else
-    echo "Error: /usr/local/bin/convert_x265 not found" >&2
-    exit 1
-fi
-
-if [[ -f /usr/local/bin/check_x265 ]]; then
-    chmod +x /usr/local/bin/check_x265
-else
-    echo "Error: /usr/local/bin/check_x265 not found" >&2
-    exit 1
-fi
-
+chmod +x /usr/local/bin/convert_x265
+chmod +x /usr/local/bin/check_x265
 exit 0
 EOF
-
-chmod +x debian/DEBIAN/postinst
+chmod 755 "$INSTALL_ROOT/DEBIAN/postinst"
 
 # Copy the necessary files to the debian directory
 # Copy binary files
-BIN_FILES=("$SHARE_PATH/convert_x265" "$SHARE_PATH/check_x265")
-for file in "${BIN_FILES[@]}"; do
-    cp "$file" "debian/usr/local/bin/$(basename "$file")"
-done
+install -Dm755 "$SHARE_PATH/convert_x265" "$BIN_PATH/convert_x265"
+install -Dm755 "$SHARE_PATH/check_x265" "$BIN_PATH/check_x265"
 
 # Copy version and configuration files
-cp "$SHARE_PATH/version" debian/usr/local/share/x265_convert_script/version
-cp "$CONFIG_PATH/preferences.conf" debian/usr/local/share/x265_convert_script/config/preferences.conf
+install -Dm644 "$VERSION_FILE" "$SHARE_BASE/version"
+install -Dm644 "$CONFIG_PATH/preferences.conf" "$SHARE_BASE/config/preferences.conf"
 
 # Copy source scripts
-SRC_FILES=("logging.sh" "file_utils.sh" "check_update.sh" "backup.sh" "media_utils.sh" "arguments.sh" "display_help.sh")
-for file in "${SRC_FILES[@]}"; do
-    cp "$SRC_PATH/$file" "debian/usr/local/share/x265_convert_script/src/$file"
+for file in logging.sh file_utils.sh check_update.sh backup.sh media_utils.sh arguments.sh display_help.sh; do
+    install -Dm644 "$SRC_PATH/$file" "$SHARE_BASE/src/$file"
 done
 
 # Copy source scripts
-PROFILE_PATH=("quality.conf" "balanced.conf" "fast.conf" "base_quality.conf")
-for file in "${PROFILE_PATH[@]}"; do
-    cp "$SRC_PATH/profiles/$file" "debian/usr/local/share/x265_convert_script/src/profiles/$file"
+for profile in quality.conf balanced.conf fast.conf base_quality.conf; do
+    install -Dm644 "$SRC_PATH/profiles/$profile" "$SHARE_BASE/src/profiles/$profile"
 done
-
 # Copy app metadata
-cp "$PACKAGING_PATH/appdata.xml" debian/usr/share/metainfo/x265_converter_script.appdata.xml
+install -Dm644 "$PACKAGING_PATH/appdata.xml" "$METAINFO_PATH/x265_converter_script.appdata.xml"
 
 # Copy project README
-cp "$SHARE_PATH/README.md" debian/usr/share/doc/x265_convert_script/README.md
+install -Dm644 "$SHARE_PATH/README.md" "$DOC_PATH/README.md"
 
 # Install the man page
 if [[ -f "$PACKAGING_PATH/convert_x265.1" ]]; then
-    cp "$PACKAGING_PATH/convert_x265.1" debian/usr/share/man/man1/convert_x265.1
-    gzip -f debian/usr/share/man/man1/convert_x265.1
+    install -Dm644 "$PACKAGING_PATH/convert_x265.1" "$MAN_PATH/convert_x265.1"
+    gzip -f "$MAN_PATH/convert_x265.1"
 else
     echo "Error: convert_x265.1 man page not found in $PACKAGING_PATH. Exiting..."
     exit 1
