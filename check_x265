@@ -3,7 +3,7 @@
 # This script checks for pending video files that need to be processed and logs them.
 
 # Detect if running from a deb package install or from source directory
-SCRIPT_DIR = $(dirname "${BASH_SOURCE[0]}")
+SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
 if [[ -d "/usr/local/share/x265_convert_script" && $SCRIPT_DIR == "/usr/local/bin" ]]; then
     SHARE_PATH="/usr/local/share/x265_convert_script"
 else
