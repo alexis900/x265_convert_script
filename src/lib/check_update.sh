@@ -2,18 +2,21 @@
 # This script checks for updates to the x265 convert script and notifies the user if a new version is available.
 
 # Check if the version file exists
-if [[ ! -f "${SHARE_PATH}/version" ]]; then
+
+VERSION_FILE="${SHARE_PATH}/src/version"
+if [[ ! -f $VERSION_FILE ]]; then
+    echo $VERSION_FILE
     echo "Error: Version file does not exist. Exiting..."
     exit 1
 fi
 # Check if the version file is readable
-if [[ ! -r "${SHARE_PATH}/version" ]]; then
+if [[ ! -r $VERSION_FILE ]]; then
     echo "Error: Version file is not readable. Exiting..."
     exit 1
 fi
 
 check_update_version(){
-    source "${SHARE_PATH}/version"
+    source $VERSION_FILE
     local current_version="${VERSION}-${CHANNEL}"
     local response=$(curl -s "${CHECK_LATESTS_VERSION}")
     local latest_version=$(echo "$response" | grep -oP 'VERSION=\K[0-9]+(\.[0-9]+){3}')

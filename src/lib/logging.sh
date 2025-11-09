@@ -29,6 +29,11 @@ log() {
         mkdir -p "${HOME}/.cache/x265_convert/logs/"
     fi
 
+    # Fallback logfile if none provided
+    if [[ -z "$logfile" ]]; then
+        logfile="${HOME}/.cache/x265_convert/logs/x265_convert_script.log"
+    fi
+
     # Use the LOG_LEVEL environment variable
     if [[ ${LOG_LEVELS[$level]} -ge ${LOG_LEVELS[$LOG_LEVEL]} ]]; then
         echo "[$timestamp] [$level] $message" | tee -a "$logfile"

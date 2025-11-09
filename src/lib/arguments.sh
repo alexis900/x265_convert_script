@@ -24,15 +24,8 @@ while true; do
             exit 0
             ;;
         -v|--version)
-            readonly check_update="$SRC_PATH/check_update.sh"
-            if [[ -f "$check_update" ]]; then
-                source "$check_update"
                 check_update_version
                 exit 0
-            else
-                echo "Error: $check_update not found. Exiting..."
-                exit 1
-            fi
             ;;
         -i|--input)
                 check_input "$2"

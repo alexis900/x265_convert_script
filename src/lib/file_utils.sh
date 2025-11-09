@@ -50,13 +50,15 @@ find_pending_files() {
         \( -name "*.mkv" -o -name "*.avi" -o -name "*.mp4" -o -name "*.mov" -o -name "*.wmv" -o -name "*.flv" -o -name "*.m4v" -o -name "*.webm" -o -name "*.3gp" \) \
         -not -name "*.h265.mkv" -not -name "*.x265.mkv" | while read -r f; do
             codec=$(detect_codec "$f")
-            xattr_output=$(check_xattr_larger "$f")
+            # Use the exit status of check_xattr_larger instead of capturing stdout
             if [[ "$codec" == "hevc" ]] && [[ "${f##*.}" != "${OUTPUT_EXTENSION}" ]]; then
                 echo "$f"
             elif [[ "$codec" == "h264" ]] && [[ "${f##*.}" != "${OUTPUT_EXTENSION}" ]]; then
                 echo "$f"
-            elif [[ "$codec" != "hevc" && "$xattr_output" != "true" ]]; then
-                echo "$f"
+            else
+                if ! check_xattr_larger "$f"; then
+                    echo "$f"
+                fi
             fi
         done
 }
