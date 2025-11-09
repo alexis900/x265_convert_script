@@ -2,11 +2,10 @@ name: Build DEB Package
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main, '24-refactor-argument-parsing' ]
   pull_request:
-    branches:
-      - main
+    branches: [ main ]
+
 
 jobs:
   build-deb-package:
