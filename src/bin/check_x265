@@ -9,10 +9,11 @@ readonly SCRIPT_DIR=$(dirname "$SCRIPT_PATH")
 if [[ -d "/usr/local/share/x265_convert_script" && $SCRIPT_DIR == "/usr/local/bin" ]]; then
     readonly SHARE_PATH="/usr/local/share/x265_convert_script"
 else
-    readonly SHARE_PATH="$(dirname "$SCRIPT_DIR")"
+    # We are inside repo/src/bin; set SHARE_PATH to project root (two levels up)
+    readonly SHARE_PATH="$(dirname "$(dirname "$SCRIPT_DIR")")"
 fi
 
-readonly SRC_PATH="$SHARE_PATH"
+readonly SRC_PATH="$SHARE_PATH/src"
 # Load environment variables and utility functions
 if [[ -f "$SRC_PATH/config/preferences.conf" ]]; then
     source "$SRC_PATH/config/preferences.conf"
@@ -30,7 +31,7 @@ declare -A required_files=(
 )
 
 for file in "${!required_files[@]}"; do
-    full_path="${required_files[$file]}/lib/$file"
+    full_path="${required_files[$file]}/src/lib/$file"
     if [[ ! -f "$full_path" ]]; then
         echo "Error: Required file $file does not exist in ${required_files[$file]}. Exiting..."
         exit 1
