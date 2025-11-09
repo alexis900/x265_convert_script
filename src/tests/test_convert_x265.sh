@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-SCRIPT_PATH="/usr/local/bin/convert_x265"
+SCRIPT_PATH="$(pwd)/src/bin/convert_x265"
 TEST_DIR="$(mktemp -d /tmp/test_convert_x265_XXXXXX)"
 PREFERENCES_FILE="$TEST_DIR/preferences.conf"
 
@@ -29,11 +29,24 @@ test_version() {
 # Test 2: Check missing preferences.conf error
 test_missing_preferences() {
     echo "Running test: Missing preferences.conf"
-    rm -f "$PREFERENCES_FILE"
-    if "$SCRIPT_PATH" --dir "$TEST_DIR" 2>&1 | grep -q "preferences.conf not found"; then
+    # Temporarily move the repo preferences.conf to simulate missing config
+    if [[ -f "$(pwd)/src/config/preferences.conf" ]]; then
+        mv "$(pwd)/src/config/preferences.conf" "$(pwd)/src/config/preferences.conf.bak"
+        moved=true
+    else
+        moved=false
+    fi
+
+    output=$("$SCRIPT_PATH" --dir "$TEST_DIR" 2>&1 || true)
+    echo "$output" | tee /dev/stderr | grep -q "preferences.conf not found"
+    if [[ $? -eq 0 ]]; then
         pass "Missing preferences.conf error handled correctly."
     else
         fail "Missing preferences.conf error not handled."
+    fi
+
+    if [[ "$moved" = true ]]; then
+        mv "$(pwd)/src/config/preferences.conf.bak" "$(pwd)/src/config/preferences.conf"
     fi
 }
 
