@@ -25,9 +25,9 @@ fi
 
 # Verify if the required files exist
 declare -A required_files=(
-    ["logging.sh"]="$SRC_PATH"
-    ["file_utils.sh"]="$SRC_PATH"
-    ["media_utils.sh"]="$SRC_PATH"
+    ["logging.sh"]="$SHARE_PATH"
+    ["file_utils.sh"]="$SHARE_PATH"
+    ["media_utils.sh"]="$SHARE_PATH"
 )
 
 for file in "${!required_files[@]}"; do

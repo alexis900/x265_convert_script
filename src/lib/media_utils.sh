@@ -134,11 +134,12 @@ convert_to_h265_or_change_container() {
             delete_backup "$input_file"
         else
             log "WARNING" "The quality of the converted file is not acceptable. Keeping the original file." "${LOG_FILE}"
+            mark_xattr_skip "$input_file"
         fi
     else
         log "ERROR" "Error during conversion: $output_file" "${LOG_FILE}"
         log "INFO" "Restoring the original file from backup: $input_file" "${LOG_FILE}"
-        cp "$BACKUP_DIR/$(basename "$input_file")" "$input_file"
+        cp "$(backup_path_for_file "$input_file")" "$input_file"
     fi
 }
 
@@ -151,24 +152,25 @@ estimate_video_size() {
     local total_size=0
     local total_parts=5 # Number of parts to split the file into
     local total_duration=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$input_file" | cut -d. -f1)
+    local tmp_dir
 
-    cleanup_temp_files
+    tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/x265_estimate.XXXXXX")" || {
+        log "ERROR" "Could not create temporary directory for estimation." "${LOG_FILE}"
+        return 1
+    }
+    trap 'rm -rf "$tmp_dir"' RETURN
 
     log "INFO" "Estimating size for: $input_file" "${LOG_FILE}"
-    
-    # Ensure the /tmp directory exists
-    mkdir -p /tmp
 
     # Convert the file in 10 parts of 10 seconds to estimate the size
     for i in $(seq 0 $((total_parts - 1))); do
-        local tmp_output="/tmp/tmp_h265_part_$i.${OUTPUT_EXTENSION}"
+        local tmp_output="${tmp_dir}/part_${i}.${OUTPUT_EXTENSION}"
         log "DEBUG" "Processing part $i of file $input_file" "${LOG_FILE}"
 
-        ffmpeg -i "$input_file" -ss $((i * part_duration)) -t "$part_duration" -c:v $VIDEO_CODEC -preset $PRESET -crf $CRF -c:a $AUDIO_CODEC -sn -f matroska "$tmp_output" &>> "${FFMPEG_LOG_FILE}"
+        ffmpeg -y -nostdin -i "$input_file" -ss $((i * part_duration)) -t "$part_duration" -c:v "$VIDEO_CODEC" -preset "$PRESET" -crf "$CRF" -c:a "$AUDIO_CODEC" -sn -f matroska "$tmp_output" &>> "${FFMPEG_LOG_FILE}"
 
         if [[ $? -ne 0 ]]; then
             log "ERROR" "Error converting part $i of file $input_file. FFmpeg output: $(cat "${FFMPEG_LOG_FILE}")" "${LOG_FILE}"
-            cleanup_temp_files
             return 1
         fi
 
@@ -179,14 +181,12 @@ estimate_video_size() {
             log "DEBUG" "Part $i processed, size: $(human_size $total_size)" "${LOG_FILE}"
         else
             log "ERROR" "Could not create temporary file $tmp_output" "${LOG_FILE}"
-            cleanup_temp_files
             return 1
         fi
     done
 
     if [[ -z "$total_duration" || "$total_duration" -eq 0 ]]; then
         log "ERROR" "Invalid total duration for $input_file. Cannot estimate size." "${LOG_FILE}"
-        cleanup_temp_files
         return 1
     fi
 
@@ -195,9 +195,6 @@ estimate_video_size() {
     estimated_size=$(( total_size * total_duration / (part_duration * total_parts) ))
     log "INFO" "Total estimated size for $input_file: $(human_size $estimated_size)" "${LOG_FILE}"
     echo "$estimated_size"
-
-    # Delete all temporary files at once
-    cleanup_temp_files
 }
 
 load_profile () {

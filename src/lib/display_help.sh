@@ -8,6 +8,7 @@ display_help() {
     echo "  --input, -i <file|directory>    Specify the file or directory to process (if is directory, overrides actual_dir)"
     echo "  --log-level <level>             Set log level (DEBUG, INFO, WARNING, ERROR)"
     echo "  --estimate-size <file>          Estimate the size after H265 conversion for a file"
+    echo "  --codec <file>                  Detect and print the codec for a file"
     echo "  --check-xattr <file>            Check if the xattr user.larger is present on a file"
     echo "  --cleanup-temp-files            Clean up temporary files created during processing"
     echo

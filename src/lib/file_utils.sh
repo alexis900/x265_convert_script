@@ -44,12 +44,27 @@ mark_xattr_larger() {
     mark_xattr "$file" "user.larger"
 }
 
+check_xattr_skip() {
+    local file="$1"
+    local value
+    value="$(check_xattr "$file" "user.skip")"
+    [[ "$value" == "true" ]]
+}
+
+mark_xattr_skip() {
+    local file="$1"
+    mark_xattr "$file" "user.skip"
+}
+
 
 find_pending_files() {
     find "${ACTUAL_DIR}" -type f \
         \( -name "*.mkv" -o -name "*.avi" -o -name "*.mp4" -o -name "*.mov" -o -name "*.wmv" -o -name "*.flv" -o -name "*.m4v" -o -name "*.webm" -o -name "*.3gp" \) \
         -not -name "*.h265.mkv" -not -name "*.x265.mkv" | while read -r f; do
             codec=$(detect_codec "$f")
+            if check_xattr_skip "$f"; then
+                continue
+            fi
             # Use the exit status of check_xattr_larger instead of capturing stdout
             if [[ "$codec" == "hevc" ]] && [[ "${f##*.}" != "${OUTPUT_EXTENSION}" ]]; then
                 echo "$f"
@@ -126,5 +141,7 @@ human_size() {
 export -f find_pending_files
 export -f check_xattr_larger
 export -f mark_xattr_larger
+export -f check_xattr_skip
+export -f mark_xattr_skip
 export -f process_file
 export -f human_size

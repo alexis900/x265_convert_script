@@ -18,9 +18,19 @@ fi
 check_update_version(){
     source $VERSION_FILE
     local current_version="${VERSION}-${CHANNEL}"
-    local response=$(curl -s "${CHECK_LATESTS_VERSION}")
-    local latest_version=$(echo "$response" | grep -oP 'VERSION=\K[0-9]+(\.[0-9]+){3}')
-    local latest_channel=$(echo "$response" | grep -oP 'CHANNEL=\K[a-zA-Z]+')
+    local response
+    response=$(curl -fsSL --max-time 5 "${CHECK_LATESTS_VERSION}") || {
+        echo "Warning: Unable to check for updates (network error)."
+        return
+    }
+    local latest_version
+    local latest_channel
+    latest_version=$(echo "$response" | grep -Eo 'VERSION=[0-9]+(\.[0-9]+){3}' | head -n1 | cut -d= -f2)
+    latest_channel=$(echo "$response" | grep -Eo 'CHANNEL=[A-Za-z]+' | head -n1 | cut -d= -f2)
+    if [[ -z "$latest_version" ]]; then
+        echo "Warning: Unable to parse latest version."
+        return
+    fi
     IFS='.' read -r -a current_parts <<< "$VERSION"
     IFS='.' read -r -a latest_parts <<< "$latest_version"
 

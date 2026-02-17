@@ -6,13 +6,14 @@ check_input() {
         ACTUAL_DIR="$input"
     elif [[ -f "$input" ]]; then
         process_file "$input"
+        exit 0
     else
         log "ERROR" "Input path '$input' must be a file or directory" "${LOG_FILE}"
         return 1
     fi
 }
 
-PARSED=$(getopt -o hi:c:v --long help,input:,version,codec:,log-level:,estimate-size:,check-xattr,cleanup-temp-files,list-profiles,profile: -n 'x265_convert' -- "$@")
+PARSED=$(getopt -o hi:c:v --long help,input:,version,codec:,log-level:,estimate-size:,check-xattr:,cleanup-temp-files,list-profiles,profile: -n 'x265_convert' -- "$@")
 
 eval set -- "$PARSED"
 
@@ -36,13 +37,13 @@ while true; do
                 detect_codec "$2"
                 exit 0
             else
-                echo "Error: --codec requires a codec as an argument."
+                echo "Error: --codec requires a file path as an argument."
                 exit 1
             fi
             ;;
         --log-level)
             if [[ -n "$2" ]]; then
-                LOG_LEVEL="$2"
+                set_log_level "$2"
                 shift
             else
                 echo "Error: --log-level requires a log level as an argument."
