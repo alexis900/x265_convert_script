@@ -160,17 +160,17 @@ estimate_video_size() {
     }
     trap 'rm -rf "$tmp_dir"' RETURN
 
-    log "INFO" "Estimating size for: $input_file" "${LOG_FILE}"
+    log "INFO" "Estimating size for: $input_file" "${LOG_FILE}" >&2
 
     # Convert the file in 10 parts of 10 seconds to estimate the size
     for i in $(seq 0 $((total_parts - 1))); do
         local tmp_output="${tmp_dir}/part_${i}.${OUTPUT_EXTENSION}"
-        log "DEBUG" "Processing part $i of file $input_file" "${LOG_FILE}"
+        log "DEBUG" "Processing part $i of file $input_file" "${LOG_FILE}" >&2
 
         ffmpeg -y -nostdin -i "$input_file" -ss $((i * part_duration)) -t "$part_duration" -c:v "$VIDEO_CODEC" -preset "$PRESET" -crf "$CRF" -c:a "$AUDIO_CODEC" -sn -f matroska "$tmp_output" &>> "${FFMPEG_LOG_FILE}"
 
         if [[ $? -ne 0 ]]; then
-            log "ERROR" "Error converting part $i of file $input_file. FFmpeg output: $(cat "${FFMPEG_LOG_FILE}")" "${LOG_FILE}"
+            log "ERROR" "Error converting part $i of file $input_file. FFmpeg output: $(cat "${FFMPEG_LOG_FILE}")" "${LOG_FILE}" >&2
             return 1
         fi
 
@@ -178,22 +178,22 @@ estimate_video_size() {
         if [[ -f "$tmp_output" ]]; then
             local part_size=$(wc -c < "$tmp_output")
             total_size=$((total_size + part_size))
-            log "DEBUG" "Part $i processed, size: $(human_size $total_size)" "${LOG_FILE}"
+            log "DEBUG" "Part $i processed, size: $(human_size $total_size)" "${LOG_FILE}" >&2
         else
-            log "ERROR" "Could not create temporary file $tmp_output" "${LOG_FILE}"
+            log "ERROR" "Could not create temporary file $tmp_output" "${LOG_FILE}" >&2
             return 1
         fi
     done
 
     if [[ -z "$total_duration" || "$total_duration" -eq 0 ]]; then
-        log "ERROR" "Invalid total duration for $input_file. Cannot estimate size." "${LOG_FILE}"
+        log "ERROR" "Invalid total duration for $input_file. Cannot estimate size." "${LOG_FILE}" >&2
         return 1
     fi
 
     # Adjustment: the estimation is proportional to the size of the converted parts relative to the total duration
 
     estimated_size=$(( total_size * total_duration / (part_duration * total_parts) ))
-    log "INFO" "Total estimated size for $input_file: $(human_size $estimated_size)" "${LOG_FILE}"
+    log "INFO" "Total estimated size for $input_file: $(human_size $estimated_size)" "${LOG_FILE}" >&2
     echo "$estimated_size"
 }
 

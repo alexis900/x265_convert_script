@@ -10,6 +10,8 @@ display_help() {
     echo "  --estimate-size <file>          Estimate the size after H265 conversion for a file"
     echo "  --codec <file>                  Detect and print the codec for a file"
     echo "  --check-xattr <file>            Check if the xattr user.larger is present on a file"
+    echo "  --clear-xattr-larger <file>     Remove the xattr user.larger from a file"
+    echo "  --clear-xattr-skip <file>       Remove the xattr user.skip from a file"
     echo "  --cleanup-temp-files            Clean up temporary files created during processing"
     echo
     echo "Examples:"

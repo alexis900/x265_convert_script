@@ -13,7 +13,7 @@ check_input() {
     fi
 }
 
-PARSED=$(getopt -o hi:c:v --long help,input:,version,codec:,log-level:,estimate-size:,check-xattr:,cleanup-temp-files,list-profiles,profile: -n 'x265_convert' -- "$@")
+PARSED=$(getopt -o hi:c:v --long help,input:,version,codec:,log-level:,estimate-size:,cleanup-temp-files,list-profiles,profile: -n 'x265_convert' -- "$@")
 
 eval set -- "$PARSED"
 
@@ -65,6 +65,24 @@ while true; do
                 exit 0
             else
                 echo "Error: --check-xattr requires a file path as an argument."
+                exit 1
+            fi
+            ;;
+        --clear-xattr-larger)
+            if [[ -n "$2" ]]; then
+                clear_xattr_larger "$2"
+                exit 0
+            else
+                echo "Error: --clear-xattr-larger requires a file path as an argument."
+                exit 1
+            fi
+            ;;
+        --clear-xattr-skip)
+            if [[ -n "$2" ]]; then
+                clear_xattr_skip "$2"
+                exit 0
+            else
+                echo "Error: --clear-xattr-skip requires a file path as an argument."
                 exit 1
             fi
             ;;

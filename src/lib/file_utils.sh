@@ -44,6 +44,33 @@ mark_xattr_larger() {
     mark_xattr "$file" "user.larger"
 }
 
+clear_xattr() {
+    local file="$1"
+    local attr="$2"
+
+    if [[ ! -f "$file" ]]; then
+        log "ERROR" "File does not exist: $file" "${LOG_FILE}"
+        return 1
+    fi
+
+    if command -v xattr &>/dev/null; then
+        xattr -d "$attr" "$file" 2>/dev/null
+    else
+        log "ERROR" "xattr is not available on this system" "${LOG_FILE}"
+        return 1
+    fi
+}
+
+clear_xattr_larger() {
+    local file="$1"
+    clear_xattr "$file" "user.larger"
+}
+
+clear_xattr_skip() {
+    local file="$1"
+    clear_xattr "$file" "user.skip"
+}
+
 check_xattr_skip() {
     local file="$1"
     local value
@@ -85,6 +112,8 @@ get_output_path() {
     local dir_name
 
     base_name="$(basename "$input_file" | sed 's/\.[^.]*$//')"
+    # Strip trailing codec token from filename (e.g., .h264, .x265, .hevc)
+    base_name="$(echo "$base_name" | sed -E 's/\.(h26[45]|x26[45]|hevc)$//I')"
     dir_name="$(dirname "$input_file")"
 
     # Validar que OUTPUT_EXTENSION esté definida
@@ -141,6 +170,8 @@ human_size() {
 export -f find_pending_files
 export -f check_xattr_larger
 export -f mark_xattr_larger
+export -f clear_xattr_larger
+export -f clear_xattr_skip
 export -f check_xattr_skip
 export -f mark_xattr_skip
 export -f process_file
