@@ -3,42 +3,45 @@
 # This script checks for pending video files that need to be processed and logs them.
 
 # Detect if running from a deb package install or from source directory
-SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+# Determine SHARE_PATH: if installed use system share, else use parent of bin (src)
+readonly SCRIPT_PATH=$(realpath "${BASH_SOURCE[0]}")
+readonly SCRIPT_DIR=$(dirname "$SCRIPT_PATH")
 if [[ -d "/usr/local/share/x265_convert_script" && $SCRIPT_DIR == "/usr/local/bin" ]]; then
-    SHARE_PATH="/usr/local/share/x265_convert_script"
+    readonly SHARE_PATH="/usr/local/share/x265_convert_script"
 else
-    SHARE_PATH="$SCRIPT_DIR"
+    # We are inside repo/src/bin; set SHARE_PATH to project root (two levels up)
+    readonly SHARE_PATH="$(dirname "$(dirname "$SCRIPT_DIR")")"
 fi
 
-SRC_PATH="$SHARE_PATH/src"
-
+readonly SRC_PATH="$SHARE_PATH/src"
 # Load environment variables and utility functions
-if [[ -f "$SHARE_PATH/config/preferences.conf" ]]; then
-    source "$SHARE_PATH/config/preferences.conf"
+if [[ -f "$SRC_PATH/config/preferences.conf" ]]; then
+    source "$SRC_PATH/config/preferences.conf"
 else
-    echo "Error: preferences.conf not found in $SHARE_PATH. Exiting..."
+    echo "Error: preferences.conf not found in the current directory. Exiting..."
+    echo $SHARE_PATH
     exit 1
 fi
 
 # Verify if the required files exist
 declare -A required_files=(
-    ["logging.sh"]="$SRC_PATH"
-    ["file_utils.sh"]="$SRC_PATH"
-    ["media_utils.sh"]="$SRC_PATH"
+    ["logging.sh"]="$SHARE_PATH"
+    ["file_utils.sh"]="$SHARE_PATH"
+    ["media_utils.sh"]="$SHARE_PATH"
 )
 
 for file in "${!required_files[@]}"; do
-    full_path="${required_files[$file]}/$file"
+    full_path="${required_files[$file]}/src/lib/$file"
     if [[ ! -f "$full_path" ]]; then
         echo "Error: Required file $file does not exist in ${required_files[$file]}. Exiting..."
         exit 1
     fi
 
     if [[ "$file" == *.sh ]]; then
-        # shellcheck disable=SC1090
         source "$full_path"
     fi
 done
+
 
 log "INFO" "Checking directory: ${ACTUAL_DIR}" "${REMAINING_LOG}"
 if [ ! -d "${ACTUAL_DIR}" ]; then
@@ -52,9 +55,7 @@ files_pending=$(find_pending_files)
 
 # Check if files have been processed and if they have the 'larger' attribute
 while IFS= read -r file; do
-    xattr_output=$(check_xattr_larger "$file")
-
-    if [[ -n "$xattr_output" ]]; then
+    if check_xattr_larger "$file"; then
         log "DEBUG" "File $file already processed or marked as larger." "${REMAINING_LOG}"
         continue
     else

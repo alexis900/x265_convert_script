@@ -25,8 +25,13 @@ log() {
     local logfile="$3"
     local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
 
-    if [[ ! -d "${HOME}/.log/" ]]; then
-        mkdir "${HOME}/.log/"
+    if [[ ! -d "${HOME}/.cache/x265_convert/logs/" ]]; then
+        mkdir -p "${HOME}/.cache/x265_convert/logs/"
+    fi
+
+    # Fallback logfile if none provided
+    if [[ -z "$logfile" ]]; then
+        logfile="${HOME}/.cache/x265_convert/logs/x265_convert_script.log"
     fi
 
     # Use the LOG_LEVEL environment variable

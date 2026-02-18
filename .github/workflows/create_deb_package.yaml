@@ -2,11 +2,10 @@ name: Build DEB Package
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main, '24-refactor-argument-parsing' ]
   pull_request:
-    branches:
-      - main
+    branches: [ main ]
+
 
 jobs:
   build-deb-package:
@@ -26,8 +25,8 @@ jobs:
     # Run the script to create the DEB package
     - name: Create DEB package
       run: |
-        chmod +x packaging/create_deb_package.sh
-        ./packaging/create_deb_package.sh
+        chmod +x src/packaging/create_deb_package.sh
+        ./src/packaging/create_deb_package.sh
 
     # Save the generated DEB package as an artifact
     - name: Upload DEB package
